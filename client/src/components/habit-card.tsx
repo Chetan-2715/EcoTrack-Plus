@@ -3,11 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 
 interface HabitCardProps {
-  habitType: 'recycle' | 'transport' | 'energy' | 'water';
+  habitType: 'recycle' | 'transport' | 'energy' | 'water' | 'trees';
   title: string;
   description: string;
   icon: React.ReactNode;
-  points: number;
+  points: number | string;
   count: number;
   gradientClass: string;
   buttonClass: string;
@@ -30,13 +30,15 @@ export default function HabitCard({
   const getCountLabel = () => {
     switch (habitType) {
       case 'recycle':
-        return "Today's Count";
+        return "Items Recycled";
       case 'transport':
-        return "Today's Trips";
+        return "Trips Taken";
       case 'energy':
-        return "Hours Saved";
+        return "Actions Taken";
       case 'water':
-        return "Liters Saved";
+        return "Actions Taken";
+      case 'trees':
+        return "Trees Planted";
       default:
         return "Count";
     }
@@ -45,15 +47,17 @@ export default function HabitCard({
   const getButtonLabel = () => {
     switch (habitType) {
       case 'recycle':
-        return "Add Recycle";
+        return "Log Recycling";
       case 'transport':
-        return "Add Trip";
+        return "Log Trip";
       case 'energy':
-        return "Add Hour";
+        return "Log Action";
       case 'water':
-        return "Add Liters";
+        return "Log Action";
+      case 'trees':
+        return "Log Tree Planted";
       default:
-        return "Add";
+        return "Log Action";
     }
   };
 

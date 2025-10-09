@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../lib/auth";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
-import { Leaf } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+// Email/password via Supabase + OAuth for Google/Microsoft
+import { supabase } from "@/lib/supabase";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -21,45 +21,55 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      const response = await apiRequest("POST", "/api/auth/login", {
-        email,
-        password,
+      if (!email || !password) throw new Error("Enter email and password");
+      
+      // Use direct backend login
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
       });
       
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || "Invalid credentials");
+      }
+      
+      // Login successful - update auth context and redirect
       login(data.user);
-      toast({
-        title: "Login successful!",
-        description: "Welcome back to EcoTrack+",
-      });
+      toast({ title: "Login successful!", description: "Welcome back to EcoTrack+" });
       setLocation("/dashboard");
+      
     } catch (error: any) {
-      toast({
-        title: "Login failed",
-        description: error.message || "Invalid credentials",
-        variant: "destructive",
-      });
+      toast({ title: "Login failed", description: error.message || "Invalid credentials", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const signInWithProvider = async (provider: "google" | "azure"): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider === "azure" ? "azure" : "google",
+        options: { redirectTo: window.location.origin },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      toast({ title: "OAuth sign-in failed", description: err.message, variant: "destructive" });
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-2xl">
-        <CardHeader className="text-center">
-          <div className="w-16 h-16 eco-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
-            <Leaf className="text-white text-2xl" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">Welcome Back!</CardTitle>
-          <p className="text-gray-600 mt-2">Sign in to continue your eco journey</p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md shadow-2xl border border-border">
+        <CardContent className="flex flex-col justify-center items-center py-8">
+          <form onSubmit={handleSubmit} className="w-full space-y-6">
             <div>
-              <Label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <Label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                 Email
               </Label>
               <Input
@@ -73,7 +83,7 @@ export default function Login() {
               />
             </div>
             <div>
-              <Label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <Label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
                 Password
               </Label>
               <Input
@@ -93,10 +103,17 @@ export default function Login() {
             >
               {isLoading ? "Signing In..." : "Sign In"}
             </Button>
+            <div className="mt-4 grid grid-cols-1 gap-3">
+              <Button type="button" variant="outline" className="w-full py-3 rounded-xl" onClick={() => signInWithProvider("google")}>
+                Continue with Google
+              </Button>
+              <Button type="button" variant="outline" className="w-full py-3 rounded-xl" onClick={() => signInWithProvider("azure")}>
+                Continue with Microsoft
+              </Button>
+            </div>
           </form>
-          
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
+          <div className="mt-6 text-center w-full">
+            <p className="text-muted-foreground">
               Don't have an account?{" "}
               <Link href="/register">
                 <a className="text-eco-primary font-semibold hover:underline">Sign up</a>

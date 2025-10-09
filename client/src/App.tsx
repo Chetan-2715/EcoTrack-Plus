@@ -11,6 +11,7 @@ import Rewards from "./pages/rewards";
 import Leaderboard from "./pages/leaderboard";
 import Login from "./pages/login";
 import Register from "./pages/register";
+import Profile from "./pages/profile";
 import NotFound from "./pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/leaderboard" component={Leaderboard} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );

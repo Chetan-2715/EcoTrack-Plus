@@ -9,6 +9,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/register", async (req, res) => {
     try {
       const data = insertUserSchema.parse(req.body);
+      // Ensure email uniqueness is case-insensitive
+      data.email = data.email.toLowerCase();
       
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(data.email);
@@ -27,9 +29,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upsert app user profile after Supabase signup/login
+  app.post("/api/auth/upsert", async (req, res) => {
+    try {
+      const { id, email, username } = req.body as { id: string; email: string; username?: string };
+      const existing = await storage.getUserByEmail(email.toLowerCase());
+      if (existing) {
+        return res.json({ user: { id: existing.id, username: existing.username, email: existing.email, points: existing.points } });
+      }
+      const created = await storage.createUser({ username: username || email.split("@")[0], email: email.toLowerCase(), password: "" } as any);
+      res.json({ user: { id: created.id, username: created.username, email: created.email, points: created.points } });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to upsert user" });
+    }
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       const data = loginSchema.parse(req.body);
+      data.email = data.email.toLowerCase();
       
       const user = await storage.getUserByEmail(data.email);
       if (!user || user.password !== data.password) {
@@ -70,6 +88,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update profile (name and avatar)
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { username, avatarUrl } = req.body as { username?: string; avatarUrl?: string };
+      const user = await storage.getUser(id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const updated = await storage.updateUserProfile(id, {
+        username: username ?? user.username,
+        avatarUrl: avatarUrl ?? (user as any).avatarUrl,
+      });
+      if (!updated) return res.status(500).json({ message: "Failed to update profile" });
+      res.json({ user: { id: updated.id, username: updated.username, email: updated.email, points: updated.points, streak: updated.streak, avatarUrl: (updated as any).avatarUrl } });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
   // Habit routes
   app.post("/api/habits/:userId", async (req, res) => {
     try {
@@ -85,16 +121,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingHabits = await storage.getUserHabitsForDate(userId, today);
       const existingHabit = existingHabits.find(h => h.habitType === data.habitType);
 
-      // Points per habit type
-      const pointsPerAction = {
-        recycle: 5,
-        transport: 8,
-        energy: 6,
-        water: 4,
+      // Distance-based points calculation function
+      const calculatePoints = (habitType: string, data: any) => {
+        switch (habitType) {
+          case "transport":
+            const distance = data.distance || 0;
+            if (distance <= 5) return 1;
+            if (distance <= 10) return 2;
+            if (distance <= 20) return 3;
+            return 4;
+          case "recycle": return 5;
+          case "energy": return 6;
+          case "water": return 4;
+          case "trees": return 5;
+          default: return 1;
+        }
       };
 
       const newCount = (existingHabit?.count || 0) + data.increment;
-      const pointsEarned = data.increment * pointsPerAction[data.habitType];
+      const pointsEarned = data.increment * calculatePoints(data.habitType, data);
+      
+      // For habits that require image verification, points are pending
+      const needsVerification = data.habitType !== 'transport' && data.imageUrl;
+      const actualPointsToAdd = needsVerification ? 0 : pointsEarned;
 
       // Create or update habit
       const habit = await storage.createOrUpdateHabit({
@@ -103,10 +152,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count: newCount,
         date: today,
         pointsEarned: (existingHabit?.pointsEarned || 0) + pointsEarned,
+        distance: data.distance,
+        startLocation: data.startLocation,
+        endLocation: data.endLocation,
+        recycledItem: data.recycledItem,
+        imageUrl: data.imageUrl,
+        verified: needsVerification ? 0 : 1, // 0 = pending, 1 = verified
+        description: data.description,
       });
 
-      // Update user points
-      const updatedUser = await storage.updateUserPoints(userId, user.points + pointsEarned);
+      // Update user points (only if no verification needed)
+      const updatedUser = await storage.updateUserPoints(userId, user.points + actualPointsToAdd);
 
       res.json({ habit, user: updatedUser });
     } catch (error: any) {
@@ -133,6 +189,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ habits: habitMap });
     } catch (error) {
       res.status(500).json({ message: "Failed to get habits" });
+    }
+  });
+
+  // Daily activity heatmap-like data: counts per day for last 12 weeks
+  app.get("/api/activity/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const days = parseInt((req.query.days as string) || "84");
+      const data = await storage.getDailyActivity(userId, days);
+      res.json({ days: data });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get activity" });
     }
   });
 

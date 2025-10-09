@@ -8,11 +8,13 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUserPoints(userId: string, points: number): Promise<User | undefined>;
   updateUserStreak(userId: string, streak: number): Promise<User | undefined>;
+  updateUserProfile(userId: string, profile: { username: string; avatarUrl?: string }): Promise<User | undefined>;
   
   // Habit methods
   getUserHabitsForDate(userId: string, date: string): Promise<Habit[]>;
   createOrUpdateHabit(habit: InsertHabit): Promise<Habit>;
   getTotalUserHabits(userId: string): Promise<number>;
+  getDailyActivity(userId: string, days: number): Promise<{ date: string; count: number }[]>;
   
   // Leaderboard methods
   getLeaderboard(limit?: number): Promise<User[]>;
@@ -143,7 +145,8 @@ export class MemStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.email === email);
+    const needle = email.toLowerCase();
+    return Array.from(this.users.values()).find(user => user.email.toLowerCase() === needle);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -157,6 +160,8 @@ export class MemStorage implements IStorage {
       lastLoginDate: now,
       createdAt: now,
     };
+    // normalize email for uniqueness
+    (user as any).email = insertUser.email.toLowerCase();
     this.users.set(id, user);
     return user;
   }
@@ -179,6 +184,15 @@ export class MemStorage implements IStorage {
     return updatedUser;
   }
 
+  async updateUserProfile(userId: string, profile: { username: string; avatarUrl?: string }): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    const updatedUser: any = { ...user, username: profile.username };
+    if (profile.avatarUrl !== undefined) updatedUser.avatarUrl = profile.avatarUrl;
+    this.users.set(userId, updatedUser);
+    return updatedUser as User;
+  }
+
   async getUserHabitsForDate(userId: string, date: string): Promise<Habit[]> {
     return Array.from(this.habits.values()).filter(
       habit => habit.userId === userId && habit.date === date
@@ -198,9 +212,17 @@ export class MemStorage implements IStorage {
       // Update existing habit
       const updatedHabit: Habit = {
         ...existingHabit,
-        count: habitData.count || 0,
-        pointsEarned: habitData.pointsEarned || 0,
-      };
+        count: habitData.count || existingHabit.count || 0,
+        pointsEarned: habitData.pointsEarned || existingHabit.pointsEarned || 0,
+        distance: habitData.distance || existingHabit.distance,
+        startLocation: habitData.startLocation || existingHabit.startLocation,
+        endLocation: habitData.endLocation || existingHabit.endLocation,
+        recycledItem: habitData.recycledItem || existingHabit.recycledItem,
+        imageUrl: habitData.imageUrl || existingHabit.imageUrl,
+        verified: habitData.verified !== undefined ? habitData.verified : (existingHabit as any).verified || 1,
+        description: habitData.description || existingHabit.description,
+        createdAt: existingHabit.createdAt,
+      } as any;
       this.habits.set(existingHabit.id, updatedHabit);
       return updatedHabit;
     } else {
@@ -210,8 +232,10 @@ export class MemStorage implements IStorage {
         ...habitData, 
         id,
         count: habitData.count || 0,
-        pointsEarned: habitData.pointsEarned || 0
-      };
+        pointsEarned: habitData.pointsEarned || 0,
+        verified: habitData.verified !== undefined ? habitData.verified : 1,
+        createdAt: new Date(),
+      } as any;
       this.habits.set(id, habit);
       return habit;
     }
@@ -221,6 +245,25 @@ export class MemStorage implements IStorage {
     return Array.from(this.habits.values())
       .filter(habit => habit.userId === userId)
       .reduce((total, habit) => total + habit.count, 0);
+  }
+
+  async getDailyActivity(userId: string, days: number): Promise<{ date: string; count: number }[]> {
+    // Build a map of date -> total count from habits
+    const today = new Date();
+    const formatter = (d: Date) => d.toISOString().split('T')[0];
+    const counts = new Map<string, number>();
+    for (const habit of this.habits.values()) {
+      if (habit.userId !== userId) continue;
+      counts.set(habit.date, (counts.get(habit.date) || 0) + habit.count);
+    }
+    const result: { date: string; count: number }[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const key = formatter(d);
+      result.push({ date: key, count: counts.get(key) || 0 });
+    }
+    return result;
   }
 
   async getLeaderboard(limit: number = 10): Promise<User[]> {

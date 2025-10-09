@@ -12,15 +12,26 @@ export const users = pgTable("users", {
   streak: integer("streak").notNull().default(0),
   lastLoginDate: timestamp("last_login_date"),
   createdAt: timestamp("created_at").default(sql`now()`),
+  avatarUrl: text("avatar_url"),
 });
 
 export const habits = pgTable("habits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
-  habitType: text("habit_type").notNull(), // recycle, transport, energy, water
+  habitType: text("habit_type").notNull(), // recycle, transport, energy, water, trees
   count: integer("count").notNull().default(0),
   date: text("date").notNull(), // YYYY-MM-DD format
   pointsEarned: integer("points_earned").notNull().default(0),
+  
+  // New fields for enhanced tracking
+  distance: integer("distance"), // Distance in kilometers for transport
+  startLocation: text("start_location"), // Start point for transport
+  endLocation: text("end_location"), // End point for transport
+  recycledItem: text("recycled_item"), // Type of item recycled
+  imageUrl: text("image_url"), // URL to uploaded verification image
+  verified: integer("verified").notNull().default(0), // 0 = pending, 1 = verified, 2 = rejected
+  description: text("description"), // Additional description
+  createdAt: timestamp("created_at").default(sql`now()`),
 });
 
 export const rewards = pgTable("rewards", {
@@ -51,6 +62,13 @@ export const insertHabitSchema = createInsertSchema(habits).pick({
   count: true,
   date: true,
   pointsEarned: true,
+  distance: true,
+  startLocation: true,
+  endLocation: true,
+  recycledItem: true,
+  imageUrl: true,
+  verified: true,
+  description: true,
 });
 
 export const loginSchema = z.object({
@@ -59,8 +77,15 @@ export const loginSchema = z.object({
 });
 
 export const habitUpdateSchema = z.object({
-  habitType: z.enum(["recycle", "transport", "energy", "water"]),
+  habitType: z.enum(["recycle", "transport", "energy", "water", "trees"]),
   increment: z.number().min(1).default(1),
+  // Optional fields for specific habit types
+  distance: z.number().optional(), // For transport
+  startLocation: z.string().optional(), // For transport
+  endLocation: z.string().optional(), // For transport
+  recycledItem: z.string().optional(), // For recycling
+  imageUrl: z.string().optional(), // For verification
+  description: z.string().optional(), // General description
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

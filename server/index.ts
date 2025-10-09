@@ -60,12 +60,50 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  const basePort = parseInt(process.env.PORT || '5000', 10);
+  const maxAttempts = 10;
+
+  async function listenWithRetry(): Promise<void> {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const candidatePort = basePort + attempt;
+      const listenOptions: any = {
+        port: candidatePort,
+        host: "0.0.0.0",
+      };
+      if (process.platform !== "win32") {
+        listenOptions.reusePort = true;
+      }
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const onError = (err: any) => {
+            server.off("listening", onListening);
+            reject(err);
+          };
+          const onListening = () => {
+            server.off("error", onError);
+            resolve();
+          };
+          server.once("error", onError);
+          server.once("listening", onListening);
+          server.listen(listenOptions);
+        });
+
+        log(`serving on http://localhost:${candidatePort}`);
+        return;
+      } catch (err: any) {
+        if (err && err.code === "EADDRINUSE") {
+          log(`port ${candidatePort} in use, trying ${candidatePort + 1}`);
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    throw new Error(
+      `Could not bind to a port starting at ${basePort} after ${maxAttempts} attempts`,
+    );
+  }
+
+  await listenWithRetry();
 })();

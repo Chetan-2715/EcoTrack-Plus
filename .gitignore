@@ -1,6 +1,45 @@
-node_modules
-dist
+# Node modules
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+build/
+out/
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
 .DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+
+# System files
+*.tmp
+*.temp
+
+# Replit/warp/dev/other tool files
+replit.*
+WARP.md
+*.code-workspace
+
+# Dependency lock files (optional, if you don't want to track them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Misc
+coverage/
+*.tgz
+
+# Ignore local database or storage
+*.sqlite
+*.db
