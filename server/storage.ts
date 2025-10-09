@@ -1,5 +1,7 @@
 import { type User, type InsertUser, type Habit, type InsertHabit, type Reward, type UserReward } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { readFileSync, writeFileSync, existsSync } from "fs";
+import { join } from "path";
 
 export interface IStorage {
   // User methods
@@ -41,6 +43,9 @@ export class MemStorage implements IStorage {
     // Initialize some default rewards and demo data
     this.initializeRewards();
     this.initializeDemoData();
+    
+    // Load persistent data from filesystem (in production, use a real database)
+    this.loadPersistedData();
   }
 
   private initializeRewards() {
@@ -101,43 +106,104 @@ export class MemStorage implements IStorage {
   }
 
   private initializeDemoData() {
-    // Add demo users for leaderboard
-    const demoUsers: User[] = [
-      {
-        id: "demo-user-1",
-        username: "Ananya",
-        email: "ananya@demo.com",
-        password: "demo123",
-        points: 220,
-        streak: 15,
-        lastLoginDate: new Date(),
-        createdAt: new Date()
-      },
-      {
-        id: "demo-user-2", 
-        username: "Rohit",
-        email: "rohit@demo.com",
-        password: "demo123",
-        points: 190,
-        streak: 12,
-        lastLoginDate: new Date(),
-        createdAt: new Date()
-      },
-      {
-        id: "demo-user-3",
-        username: "Priya", 
-        email: "priya@demo.com",
-        password: "demo123",
-        points: 150,
-        streak: 8,
-        lastLoginDate: new Date(),
-        createdAt: new Date()
-      }
-    ];
+    // Add demo users for leaderboard only if no users exist
+    if (this.users.size === 0) {
+      const demoUsers: User[] = [
+        {
+          id: "demo-user-1",
+          username: "Ananya",
+          email: "ananya@demo.com",
+          password: "demo123",
+          points: 220,
+          streak: 15,
+          lastLoginDate: new Date(),
+          createdAt: new Date()
+        },
+        {
+          id: "demo-user-2", 
+          username: "Rohit",
+          email: "rohit@demo.com",
+          password: "demo123",
+          points: 190,
+          streak: 12,
+          lastLoginDate: new Date(),
+          createdAt: new Date()
+        },
+        {
+          id: "demo-user-3",
+          username: "Priya", 
+          email: "priya@demo.com",
+          password: "demo123",
+          points: 150,
+          streak: 8,
+          lastLoginDate: new Date(),
+          createdAt: new Date()
+        }
+      ];
 
-    demoUsers.forEach(user => {
-      this.users.set(user.id, user);
-    });
+      demoUsers.forEach(user => {
+        this.users.set(user.id, user);
+      });
+    }
+  }
+
+  private loadPersistedData() {
+    try {
+      const dataFile = join(process.cwd(), 'data.json');
+      
+      if (existsSync(dataFile)) {
+        const data = JSON.parse(readFileSync(dataFile, 'utf8'));
+        
+        // Load users
+        if (data.users) {
+          data.users.forEach((user: any) => {
+            this.users.set(user.id, {
+              ...user,
+              lastLoginDate: user.lastLoginDate ? new Date(user.lastLoginDate) : undefined,
+              createdAt: user.createdAt ? new Date(user.createdAt) : undefined
+            });
+          });
+        }
+        
+        // Load habits
+        if (data.habits) {
+          data.habits.forEach((habit: any) => {
+            this.habits.set(habit.id, {
+              ...habit,
+              createdAt: habit.createdAt ? new Date(habit.createdAt) : undefined
+            });
+          });
+        }
+        
+        // Load user rewards
+        if (data.userRewards) {
+          data.userRewards.forEach((userReward: any) => {
+            this.userRewards.set(userReward.id, {
+              ...userReward,
+              claimedAt: userReward.claimedAt ? new Date(userReward.claimedAt) : undefined
+            });
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load persisted data:', error);
+    }
+  }
+
+  private persistData() {
+    try {
+      const dataFile = join(process.cwd(), 'data.json');
+      
+      const data = {
+        users: Array.from(this.users.values()),
+        habits: Array.from(this.habits.values()),
+        userRewards: Array.from(this.userRewards.values())
+      };
+      
+      writeFileSync(dataFile, JSON.stringify(data, null, 2));
+    } catch (error) {
+      console.error('Failed to persist data:', error);
+    }
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -150,6 +216,12 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    // Check for existing email before creating
+    const existingUser = await this.getUserByEmail(insertUser.email);
+    if (existingUser) {
+      throw new Error('User already exists with this email');
+    }
+    
     const id = randomUUID();
     const now = new Date();
     const user: User = {
@@ -163,6 +235,7 @@ export class MemStorage implements IStorage {
     // normalize email for uniqueness
     (user as any).email = insertUser.email.toLowerCase();
     this.users.set(id, user);
+    this.persistData();
     return user;
   }
 
@@ -172,6 +245,7 @@ export class MemStorage implements IStorage {
     
     const updatedUser = { ...user, points };
     this.users.set(userId, updatedUser);
+    this.persistData();
     return updatedUser;
   }
 
@@ -181,6 +255,7 @@ export class MemStorage implements IStorage {
     
     const updatedUser = { ...user, streak, lastLoginDate: new Date() };
     this.users.set(userId, updatedUser);
+    this.persistData();
     return updatedUser;
   }
 
@@ -190,6 +265,7 @@ export class MemStorage implements IStorage {
     const updatedUser: any = { ...user, username: profile.username };
     if (profile.avatarUrl !== undefined) updatedUser.avatarUrl = profile.avatarUrl;
     this.users.set(userId, updatedUser);
+    this.persistData();
     return updatedUser as User;
   }
 
@@ -224,6 +300,7 @@ export class MemStorage implements IStorage {
         createdAt: existingHabit.createdAt,
       } as any;
       this.habits.set(existingHabit.id, updatedHabit);
+      this.persistData();
       return updatedHabit;
     } else {
       // Create new habit
@@ -237,6 +314,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
       } as any;
       this.habits.set(id, habit);
+      this.persistData();
       return habit;
     }
   }
@@ -299,6 +377,7 @@ export class MemStorage implements IStorage {
       claimedAt: new Date(),
     };
     this.userRewards.set(id, userReward);
+    this.persistData();
     return userReward;
   }
 }

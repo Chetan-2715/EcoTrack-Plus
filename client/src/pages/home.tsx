@@ -15,6 +15,93 @@ import {
   Rocket,
   Info
 } from "lucide-react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Stars } from "@react-three/drei";
+import { useRef, useState } from "react";
+import * as THREE from "three";
+
+// Interactive Globe mesh
+function GlobeMesh() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lastPos, setLastPos] = useState<[number, number] | null>(null);
+  const [rotation, setRotation] = useState<[number, number]>([0, 0]);
+
+  // Auto-rotate when not dragging
+  useFrame(() => {
+    if (meshRef.current && !isDragging) {
+      meshRef.current.rotation.y += 0.01;
+    }
+  });
+
+  // Mouse/touch drag handlers
+  const handlePointerDown = (e: any) => {
+    setIsDragging(true);
+    setLastPos([e.clientX ?? e.touches?.[0]?.clientX, e.clientY ?? e.touches?.[0]?.clientY]);
+    setRotation([
+      meshRef.current?.rotation.y || 0,
+      meshRef.current?.rotation.x || 0,
+    ]);
+  };
+  const handlePointerUp = () => {
+    setIsDragging(false);
+    setLastPos(null);
+  };
+  const handlePointerMove = (e: any) => {
+    if (isDragging && meshRef.current && lastPos) {
+      const clientX = e.clientX ?? e.touches?.[0]?.clientX;
+      const clientY = e.clientY ?? e.touches?.[0]?.clientY;
+      const dx = (clientX - lastPos[0]) * 0.01;
+      const dy = (clientY - lastPos[1]) * 0.01;
+      meshRef.current.rotation.y = rotation[0] + dx;
+      meshRef.current.rotation.x = rotation[1] + dy;
+    }
+  };
+
+  return (
+    <mesh
+      ref={meshRef}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerOut={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      onPointerMove={handlePointerMove}
+      onTouchStart={handlePointerDown}
+      onTouchEnd={handlePointerUp}
+      onTouchCancel={handlePointerUp}
+      onTouchMove={handlePointerMove}
+    >
+      <sphereGeometry args={[1, 64, 64]} />
+      <meshStandardMaterial
+        color="#3fa7d6"
+        roughness={0.7}
+        metalness={0.3}
+        map={new THREE.TextureLoader().load("https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg")}
+      />
+    </mesh>
+  );
+}
+
+// 3D Globe component (renders Canvas)
+function RotatingGlobe() {
+  return (
+    <Canvas
+      style={{
+        width: 160,
+        height: 160,
+        display: "block",
+        cursor: "grab",
+        background: "transparent",
+      }}
+      camera={{ position: [0, 0, 2.5], fov: 50 }}
+    >
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[2, 2, 2]} intensity={0.7} />
+      <Stars radius={5} depth={10} count={50} factor={0.2} />
+      <GlobeMesh />
+    </Canvas>
+  );
+}
 
 export default function Home() {
   const { user } = useAuth();
@@ -36,12 +123,19 @@ export default function Home() {
         
         <div className="container mx-auto px-4 text-center relative z-10">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
-              Track Your Habits.
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-eco-primary to-eco-secondary">
-                {" "}Save the Planet 🌍
-              </span>
-            </h1>
+            <div className="flex flex-row items-center justify-center gap-6">
+              <div className="flex flex-col justify-center">
+                <span className="text-5xl md:text-7xl font-bold text-foreground leading-tight">
+                  Track Your Habits.
+                </span>
+                <span className="text-5xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-eco-primary to-eco-secondary leading-tight">
+                  Save the Planet
+                </span>
+              </div>
+              <div className="flex items-center h-full">
+                <RotatingGlobe />
+              </div>
+            </div>
             
             <p className="text-xl md:text-2xl text-muted-foreground mb-12 leading-relaxed max-w-3xl mx-auto">
               Join thousands of eco-warriors making a difference. Track your sustainable habits, earn rewards, and compete with friends while protecting our planet.
@@ -181,7 +275,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-eco-primary/30 mt-8 pt-8 text-center text-eco-mint">
-            <p>&copy; 2024 EcoTrack+. All rights reserved. Made with 💚 for our planet.</p>
+            <p>&copy; Made with 💚 for our planet.</p>
           </div>
         </div>
       </footer>

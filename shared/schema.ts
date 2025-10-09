@@ -77,7 +77,7 @@ export const loginSchema = z.object({
 });
 
 export const habitUpdateSchema = z.object({
-  habitType: z.enum(["recycle", "transport", "energy", "water", "trees"]),
+  habitType: z.enum(["recycle", "transport", "water", "trees"]),
   increment: z.number().min(1).default(1),
   // Optional fields for specific habit types
   distance: z.number().optional(), // For transport

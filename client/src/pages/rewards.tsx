@@ -88,8 +88,8 @@ export default function Rewards() {
     <main className="py-8 min-h-screen">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Eco Rewards</h1>
-          <p className="text-xl text-gray-600 mb-6">Unlock amazing rewards as you progress on your eco journey</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Eco Rewards</h1>
+          <p className="text-xl text-muted-foreground mb-6">Unlock amazing rewards as you progress on your eco journey</p>
           <div className="inline-flex items-center bg-white rounded-full px-6 py-3 shadow-lg">
             <Coins className="text-eco-primary text-xl mr-3" />
             <span className="text-lg font-semibold text-gray-700">Your Points: </span>

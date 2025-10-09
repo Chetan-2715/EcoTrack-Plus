@@ -12,18 +12,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure email uniqueness is case-insensitive
       data.email = data.email.toLowerCase();
       
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(data.email);
-      if (existingUser) {
-        return res.status(400).json({ message: "User already exists with this email" });
-      }
-
       const user = await storage.createUser(data);
       res.json({ user: { id: user.id, username: user.username, email: user.email, points: user.points } });
     } catch (error: any) {
       if (error.name === "ZodError") {
         const validationError = fromZodError(error);
         return res.status(400).json({ message: validationError.message });
+      }
+      if (error.message === "User already exists with this email") {
+        return res.status(400).json({ message: error.message });
       }
       res.status(500).json({ message: "Failed to create user" });
     }
@@ -95,13 +92,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { username, avatarUrl } = req.body as { username?: string; avatarUrl?: string };
       const user = await storage.getUser(id);
       if (!user) return res.status(404).json({ message: "User not found" });
-      const updated = await storage.updateUserProfile(id, {
+      
+      // Only update fields that are provided
+      const updateData: { username: string; avatarUrl?: string } = {
         username: username ?? user.username,
-        avatarUrl: avatarUrl ?? (user as any).avatarUrl,
-      });
+      };
+      
+      // Only include avatarUrl if it's provided (not undefined)
+      if (avatarUrl !== undefined) {
+        updateData.avatarUrl = avatarUrl;
+      } else if ((user as any).avatarUrl) {
+        updateData.avatarUrl = (user as any).avatarUrl;
+      }
+      
+      const updated = await storage.updateUserProfile(id, updateData);
       if (!updated) return res.status(500).json({ message: "Failed to update profile" });
       res.json({ user: { id: updated.id, username: updated.username, email: updated.email, points: updated.points, streak: updated.streak, avatarUrl: (updated as any).avatarUrl } });
     } catch (error) {
+      console.error('Profile update error:', error);
       res.status(500).json({ message: "Failed to update profile" });
     }
   });
@@ -131,7 +139,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (distance <= 20) return 3;
             return 4;
           case "recycle": return 5;
-          case "energy": return 6;
           case "water": return 4;
           case "trees": return 5;
           default: return 1;
@@ -141,8 +148,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newCount = (existingHabit?.count || 0) + data.increment;
       const pointsEarned = data.increment * calculatePoints(data.habitType, data);
       
-      // For habits that require image verification, points are pending
-      const needsVerification = data.habitType !== 'transport' && data.imageUrl;
+      // All habits with images require verification
+      const needsVerification = !!data.imageUrl;
       const actualPointsToAdd = needsVerification ? 0 : pointsEarned;
 
       // Create or update habit
@@ -152,10 +159,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count: newCount,
         date: today,
         pointsEarned: (existingHabit?.pointsEarned || 0) + pointsEarned,
-        distance: data.distance,
-        startLocation: data.startLocation,
-        endLocation: data.endLocation,
-        recycledItem: data.recycledItem,
+        distance: data.habitType === 'transport' ? data.distance : undefined,
+        startLocation: data.habitType === 'transport' ? data.startLocation : undefined,
+        endLocation: data.habitType === 'transport' ? data.endLocation : undefined,
+        recycledItem: data.habitType === 'recycle' ? data.recycledItem : undefined,
         imageUrl: data.imageUrl,
         verified: needsVerification ? 0 : 1, // 0 = pending, 1 = verified
         description: data.description,

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
-import { User, Recycle, Train, Lightbulb, Droplet, Home, Gift, BarChart2, Trees } from "lucide-react";
+import { Recycle, Train, Droplet, Trees } from "lucide-react";
 import HabitCard from "@/components/habit-card";
 import { HabitForm } from "@/components/habit-forms";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -37,10 +37,11 @@ export default function Dashboard() {
   // Habit submission mutation
   const submitHabitMutation = useMutation({
     mutationFn: async (data: any) => {
-      // For now, we'll simulate image upload by converting to base64
-      let imageUrl = null;
-      if (data.imageFile) {
-        // In a real app, you'd upload to a service like AWS S3 or Cloudinary
+      // Use compressed image if available, otherwise compress on the fly
+      let imageUrl = data.imageUrl; // This comes pre-compressed from the form
+      
+      if (!imageUrl && data.imageFile) {
+        // Fallback: compress if not already done
         const reader = new FileReader();
         const base64 = await new Promise((resolve) => {
           reader.onload = () => resolve(reader.result);
@@ -100,20 +101,13 @@ export default function Dashboard() {
   const habits = (habitsData as any)?.habits || {};
   const totalActions = Object.values(habits).reduce((sum: number, count: any) => sum + (count || 0), 0);
   const pointsEarned = Object.entries(habits).reduce((sum, [type, count]: [string, any]) => {
-    const pointsMap = { recycle: 5, transport: 4, energy: 6, water: 4, trees: 5 }; // Updated transport points
+    const pointsMap = { recycle: 5, transport: 4, water: 4, trees: 5 }; // Updated transport points
     return sum + (count || 0) * (pointsMap[type as keyof typeof pointsMap] || 0);
   }, 0);
 
-  // Navigation items
-  const navItems = [
-    { icon: <Home size={28} />, label: "Home", path: "/dashboard" },
-    { icon: <User size={28} />, label: "Profile", path: "/profile" },
-    { icon: <Gift size={28} />, label: "Rewards", path: "/rewards" },
-    { icon: <BarChart2 size={28} />, label: "Stats", path: "/stats" },
-  ];
 
   return (
-    <main className="py-8 pb-24">
+    <main className="py-8">
       <div className="container mx-auto px-4">
         {/* Habit Tracker Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -143,18 +137,6 @@ export default function Dashboard() {
             onIncrement={() => openForm("transport")}
           />
 
-          <HabitCard
-            habitType="energy"
-            title="Energy Saving"
-            description="Log hours saved"
-            icon={<Lightbulb className="text-3xl" />}
-            points={6}
-            count={habits.energy || 0}
-            gradientClass="eco-gradient-earth"
-            buttonClass="bg-yellow-500 hover:bg-yellow-600"
-            countColor="text-yellow-600"
-            onIncrement={() => openForm("energy")}
-          />
 
           <HabitCard
             habitType="water"
@@ -207,21 +189,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg flex justify-around py-2">
-        {navItems.map((item) => (
-          <button
-            key={item.label}
-            onClick={() => setLocation(item.path)}
-            className="group flex flex-col items-center px-4 py-1 focus:outline-none transition-colors"
-          >
-            <span className="transition-colors group-hover:text-eco-primary text-gray-500">{item.icon}</span>
-            <span className="absolute opacity-0 group-hover:opacity-100 bg-gray-900 text-white text-xs rounded px-2 py-1 mt-10 transition-opacity pointer-events-none z-50">
-              {item.label}
-            </span>
-          </button>
-        ))}
-      </nav>
       
       {/* Habit Forms */}
       {activeForm && (

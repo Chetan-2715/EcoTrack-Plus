@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "../lib/auth";
-import { Leaf, Menu, X, Home, LayoutDashboard, Gift, User, Sun, Moon, LogOut } from "lucide-react";
+import { Leaf, Menu, X, Home, Gift, User, Sun, Moon, LogOut, Trophy } from "lucide-react";
+import { UserAvatar } from "./user-avatar";
 import { useState, useEffect } from "react";
 
 export default function Navbar() {
@@ -28,10 +29,11 @@ export default function Navbar() {
   };
 
   const navItems = [
-    { path: "/", label: "Home", icon: Home, show: true },
-    { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: !!user },
+    { path: "/", label: "Home", icon: Home, show: !user },
+    { path: "/dashboard", label: "Home", icon: Home, show: !!user },
     { path: "/rewards", label: "Rewards", icon: Gift, show: !!user },
-    { path: "/profile", label: "Profile", icon: User, show: !!user },
+    { path: "/leaderboard", label: "Leaderboard", icon: Trophy, show: !!user },
+    { path: "/profile", label: "Profile", icon: () => user ? <UserAvatar username={user.username} avatarUrl={(user as any).avatarUrl} size="sm" /> : <User className="w-5 h-5" />, show: !!user },
   ];
 
   const isActive = (path: string) => {
@@ -70,7 +72,7 @@ export default function Navbar() {
                         ? "bg-eco-primary/20 text-eco-primary shadow-sm" 
                         : "text-muted-foreground hover:text-eco-primary hover:bg-eco-primary/10"
                     }`} title={item.label}>
-                      <Icon className="w-5 h-5" />
+                      {typeof Icon === 'function' ? <Icon /> : <Icon className="w-5 h-5" />}
                     </div>
                   </Link>
                 );
@@ -136,7 +138,7 @@ export default function Navbar() {
                       }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <Icon className="w-5 h-5" />
+                      {typeof Icon === 'function' ? <Icon /> : <Icon className="w-5 h-5" />}
                       <span className="font-medium">{item.label}</span>
                     </div>
                   </Link>
