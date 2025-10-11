@@ -72,7 +72,7 @@ export default function Navbar() {
                         ? "bg-eco-primary/20 text-eco-primary shadow-sm" 
                         : "text-muted-foreground hover:text-eco-primary hover:bg-eco-primary/10"
                     }`} title={item.label}>
-                      {typeof Icon === 'function' ? <Icon /> : <Icon className="w-5 h-5" />}
+                      <Icon />
                     </div>
                   </Link>
                 );
@@ -138,7 +138,7 @@ export default function Navbar() {
                       }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      {typeof Icon === 'function' ? <Icon /> : <Icon className="w-5 h-5" />}
+                      <Icon className="w-5 h-5" />
                       <span className="font-medium">{item.label}</span>
                     </div>
                   </Link>

@@ -14,7 +14,7 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeForm, setActiveForm] = useState<'recycle' | 'transport' | 'energy' | 'water' | 'trees' | null>(null);
+  const [activeForm, setActiveForm] = useState<'recycle' | 'transport' | 'water' | 'trees' | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -90,7 +90,7 @@ export default function Dashboard() {
     },
   });
   
-  const openForm = (habitType: 'recycle' | 'transport' | 'energy' | 'water' | 'trees') => {
+  const openForm = (habitType: 'recycle' | 'transport' | 'water' | 'trees') => {
     setActiveForm(habitType);
   };
 
