@@ -1,0 +1,46 @@
+{
+  "users": [
+    {
+      "id": "demo-user-1",
+      "username": "Ananya",
+      "email": "ananya@demo.com",
+      "password": "demo123",
+      "points": 220,
+      "streak": 15,
+      "lastLoginDate": "2025-10-10T10:20:29.445Z",
+      "createdAt": "2025-10-10T10:20:29.445Z"
+    },
+    {
+      "id": "demo-user-2",
+      "username": "Rohit",
+      "email": "rohit@demo.com",
+      "password": "demo123",
+      "points": 190,
+      "streak": 12,
+      "lastLoginDate": "2025-10-10T10:20:29.445Z",
+      "createdAt": "2025-10-10T10:20:29.445Z"
+    },
+    {
+      "id": "demo-user-3",
+      "username": "Priya",
+      "email": "priya@demo.com",
+      "password": "demo123",
+      "points": 150,
+      "streak": 8,
+      "lastLoginDate": "2025-10-10T10:20:29.445Z",
+      "createdAt": "2025-10-10T10:20:29.445Z"
+    },
+    {
+      "username": "Chetan Shabadi",
+      "email": "abc@gmai.com",
+      "password": "chetan",
+      "id": "75f01468-4c65-4d08-bd26-99df73c5e03a",
+      "points": 0,
+      "streak": 0,
+      "lastLoginDate": "2025-10-10T10:40:04.960Z",
+      "createdAt": "2025-10-10T10:40:04.960Z"
+    }
+  ],
+  "habits": [],
+  "userRewards": []
+}
