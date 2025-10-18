@@ -8,27 +8,77 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
 import { UserAvatar } from "@/components/user-avatar";
-import { Edit3, LogOut, Calendar, Trophy, Zap } from "lucide-react";
+import { Edit3, LogOut, Calendar, Trophy, Zap, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Profile() {
-  const { user, login } = useAuth();
+  const { user, login, logout } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [activity, setActivity] = useState<{ date: string; count: number }[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!user) { setLocation("/login"); return; }
+    
+    // Update local state immediately
     setUsername(user.username);
     setAvatarUrl((user as any).avatarUrl || "");
+    
+    // Fetch both user data and activity in parallel for faster loading
     (async () => {
-      const res = await apiRequest("GET", `/api/activity/${user.id}?days=84`);
-      const data = await res.json();
-      setActivity(data.days || []);
+      setIsLoading(true);
+      try {
+        const [userRes, activityRes] = await Promise.all([
+          apiRequest("GET", `/api/users/${user.id}`),
+          apiRequest("GET", `/api/activity/${user.id}?days=84`)
+        ]);
+        
+        const [userData, activityData] = await Promise.all([
+          userRes.json(),
+          activityRes.json()
+        ]);
+        
+        if (userData.user) {
+          setAvatarUrl((userData.user as any).avatarUrl || "");
+          login(userData.user);
+        }
+        
+        setActivity(activityData.days || []);
+      } catch (error) {
+        console.error("Failed to fetch profile data:", error);
+        setActivity([]);
+      } finally {
+        setIsLoading(false);
+      }
     })();
-  }, [user, setLocation]);
+  }, [user?.id, setLocation]);
+
+  const weeks = useMemo(() => {
+    // transform activity (84 days) into 12 weeks x 7 days grid
+    const out: { date: string; count: number }[][] = [];
+    for (let i = 0; i < activity.length; i += 7) {
+      out.push(activity.slice(i, i + 7));
+    }
+    return out;
+  }, [activity]);
+
+  const totalActivity = activity.reduce((sum, day) => sum + day.count, 0);
+  const streak = activity.filter(day => day.count > 0).length;
 
   if (!user) return null;
 
@@ -45,18 +95,9 @@ export default function Profile() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    login(null);
+    logout(); // Use the logout function from context
     setLocation("/login");
   };
-
-  const weeks = useMemo(() => {
-    // transform activity (84 days) into 12 weeks x 7 days grid
-    const out: { date: string; count: number }[][] = [];
-    for (let i = 0; i < activity.length; i += 7) {
-      out.push(activity.slice(i, i + 7));
-    }
-    return out;
-  }, [activity]);
 
   const colorFor = (count: number) => {
     if (count === 0) return "bg-gray-100";
@@ -69,10 +110,13 @@ export default function Profile() {
   const handleAvatarChange = async (newAvatarUrl: string) => {
     setAvatarUrl(newAvatarUrl);
     try {
-      const res = await apiRequest("PUT", `/api/users/${user.id}`, { username, avatarUrl: newAvatarUrl });
+      const payload = newAvatarUrl === "" 
+        ? { username, removeAvatar: true } 
+        : { username, avatarUrl: newAvatarUrl };
+      const res = await apiRequest("PUT", `/api/users/${user.id}`, payload);
       const data = await res.json();
       login(data.user);
-      toast({ title: "Profile photo updated!" });
+      toast({ title: newAvatarUrl === "" ? "Profile photo removed!" : "Profile photo updated!" });
     } catch (e: any) {
       toast({ title: "Failed to update photo", description: e.message, variant: "destructive" });
     }
@@ -90,8 +134,25 @@ export default function Profile() {
     }
   };
 
-  const totalActivity = activity.reduce((sum, day) => sum + day.count, 0);
-  const streak = activity.filter(day => day.count > 0).length;
+  const handleDeleteProfile = async () => {
+    try {
+      const res = await apiRequest("DELETE", `/api/users/${user.id}`, { password: deletePassword });
+      if (res.ok) {
+        toast({ title: "Profile deleted successfully." });
+        await supabase.auth.signOut();
+        logout(); // Use the logout function from context
+        setLocation("/login");
+      } else {
+        const errorData = await res.json();
+        toast({ title: "Failed to delete profile", description: errorData.message, variant: "destructive" });
+      }
+    } catch (e: any) {
+      toast({ title: "Failed to delete profile", description: e.message, variant: "destructive" });
+    } finally {
+      setShowDeleteDialog(false);
+      setDeletePassword("");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -134,6 +195,20 @@ export default function Profile() {
                     onKeyDown={(e) => e.key === 'Enter' && handleNameEdit()}
                   />
                 </div>
+                
+                {/* Date Joined */}
+                {(user as any).createdAt && (
+                  <div className="mt-2 text-sm text-muted-foreground flex items-center justify-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>
+                      Joined {new Date((user as any).createdAt).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                )}
               </div>
               
               {/* Stats Row */}
@@ -156,7 +231,7 @@ export default function Profile() {
         </Card>
 
         {/* Activity Heatmap */}
-        <Card>
+        <Card className="mb-6">
           <CardContent className="p-6">
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
@@ -165,29 +240,39 @@ export default function Profile() {
               </div>
               
               <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Last 12 weeks</div>
+                <div className="text-sm text-muted-foreground">Last 12 weeks (84 days)</div>
                 <div className="flex gap-1 overflow-x-auto p-2 bg-muted/20 rounded-lg">
-                  {weeks.map((w, i) => (
+                  {weeks.length > 0 ? weeks.map((w, i) => (
                     <div key={i} className="flex flex-col gap-1">
-                      {w.map((d) => (
-                        <div 
-                          key={d.date} 
-                          title={`${d.date}: ${d.count} actions`} 
-                          className={`h-3 w-3 rounded-sm ${colorFor(d.count)} hover:scale-110 transition-transform cursor-pointer`} 
-                        />
-                      ))}
+                      {w.map((d) => {
+                        const dateObj = new Date(d.date);
+                        const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric',
+                          year: 'numeric'
+                        });
+                        return (
+                          <div 
+                            key={d.date} 
+                            title={`${formattedDate}: ${d.count} ${d.count === 1 ? 'action' : 'actions'}`} 
+                            className={`h-3 w-3 rounded-sm ${colorFor(d.count)} hover:scale-125 hover:ring-2 hover:ring-eco-primary transition-all cursor-pointer`} 
+                          />
+                        );
+                      })}
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-xs text-muted-foreground py-4">Loading activity...</div>
+                  )}
                 </div>
                 
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
                   <span>Less</span>
-                  <div className="flex space-x-1">
-                    <div className="h-3 w-3 rounded-sm bg-gray-100" />
-                    <div className="h-3 w-3 rounded-sm bg-emerald-200" />
-                    <div className="h-3 w-3 rounded-sm bg-emerald-300" />
-                    <div className="h-3 w-3 rounded-sm bg-emerald-400" />
-                    <div className="h-3 w-3 rounded-sm bg-emerald-500" />
+                  <div className="flex space-x-1 items-center">
+                    <div className="h-3 w-3 rounded-sm bg-gray-100 border border-gray-200" title="0 actions" />
+                    <div className="h-3 w-3 rounded-sm bg-emerald-200" title="1-2 actions" />
+                    <div className="h-3 w-3 rounded-sm bg-emerald-300" title="3-4 actions" />
+                    <div className="h-3 w-3 rounded-sm bg-emerald-400" title="5-6 actions" />
+                    <div className="h-3 w-3 rounded-sm bg-emerald-500" title="7+ actions" />
                   </div>
                   <span>More</span>
                 </div>
@@ -195,6 +280,46 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Delete Profile Button */}
+        <Button 
+          variant="destructive" 
+          className="w-full flex items-center space-x-2"
+          onClick={() => setShowDeleteDialog(true)}
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Delete Profile</span>
+        </Button>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete your account
+                and remove your data from our servers. Please enter your password to confirm.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Input
+              type="password"
+              placeholder="Enter your password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              className="mt-4"
+            />
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteProfile} 
+                disabled={!deletePassword}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Delete My Account
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

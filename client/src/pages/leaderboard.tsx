@@ -9,15 +9,10 @@ export default function Leaderboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  useEffect(() => {
-    if (!user) {
-      setLocation("/login");
-    }
-  }, [user, setLocation]);
-
   // Fetch leaderboard data
   const { data: leaderboardData } = useQuery({
     queryKey: ["/api/leaderboard"],
+    enabled: !!user,
   });
 
   // Fetch user details for current rank
@@ -25,6 +20,12 @@ export default function Leaderboard() {
     queryKey: ["/api/users", user?.id],
     enabled: !!user?.id,
   });
+
+  useEffect(() => {
+    if (!user) {
+      setLocation("/login");
+    }
+  }, [user, setLocation]);
 
   if (!user) {
     return null;
@@ -95,7 +96,17 @@ export default function Leaderboard() {
             {topThree.map((user: any) => (
               <Card key={user.id} className={`${getRankCardClass(user.rank)} rounded-2xl shadow-lg text-white p-6 text-center transform hover:scale-105 transition-all duration-300`}>
                 <CardContent className="p-0">
-                  <div className="text-6xl mb-4">{getRankIcon(user.rank) || "🏆"}</div>
+                  {user.avatarUrl ? (
+                    <div className="mx-auto w-24 h-24 mb-4">
+                      <img 
+                        src={user.avatarUrl} 
+                        alt={user.username} 
+                        className="w-full h-full rounded-full object-cover border-4 border-white shadow-lg"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-6xl mb-4">{getRankIcon(user.rank) || "🏆"}</div>
+                  )}
                   <div className="text-4xl font-bold mb-2">{user.rank === 1 ? "1st" : user.rank === 2 ? "2nd" : "3rd"}</div>
                   <h3 className="text-xl font-bold mb-2">{user.username}</h3>
                   <div className="text-2xl font-bold mb-2">{user.points} pts</div>
@@ -119,9 +130,19 @@ export default function Leaderboard() {
               <div key={leaderUser.id} className="p-6 hover:bg-gray-50 transition-colors duration-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-eco-primary/10 rounded-full flex items-center justify-center">
-                      <span className="text-eco-primary font-bold">#{leaderUser.rank}</span>
-                    </div>
+                    {leaderUser.avatarUrl ? (
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-eco-primary/20">
+                        <img 
+                          src={leaderUser.avatarUrl} 
+                          alt={leaderUser.username} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 bg-eco-primary/10 rounded-full flex items-center justify-center">
+                        <span className="text-eco-primary font-bold">#{leaderUser.rank}</span>
+                      </div>
+                    )}
                     <div>
                       <h3 className="font-bold text-gray-900">{leaderUser.username}</h3>
                       <p className="text-sm text-gray-600">

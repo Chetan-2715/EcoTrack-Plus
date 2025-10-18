@@ -33,40 +33,75 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Hydrate user from localStorage once on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("ecotrack:user");
-      if (stored) {
-        const parsed = JSON.parse(stored) as User;
-        setUser(parsed);
-      }
-    } catch {
-      // ignore storage errors
-    }
+    let subscription: any = null;
 
-    // Hydrate from Supabase session if available
-    supabase.auth.getSession().then(({ data }) => {
-      const ssoUser = data.session?.user;
-      if (ssoUser) {
-        const email = ssoUser.email || "";
-        const username = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || (email?.split("@")[0] ?? "User");
-        const u = { id: ssoUser.id, username, email, points: 0 } as User;
-        setUser(u);
-        try { localStorage.setItem("ecotrack:user", JSON.stringify(u)); } catch {}
+    const initAuth = async () => {
+      try {
+        const stored = localStorage.getItem("ecotrack:user");
+        if (stored) {
+          const parsed = JSON.parse(stored) as User;
+          setUser(parsed);
+          
+          // Fetch fresh user data from API to ensure we have latest info
+          try {
+            const response = await fetch(`/api/users/${parsed.id}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.user) {
+                setUser(data.user);
+                localStorage.setItem("ecotrack:user", JSON.stringify(data.user));
+              }
+            } else {
+              // If API returns error (user deleted, etc), clear storage
+              localStorage.removeItem("ecotrack:user");
+              setUser(null);
+            }
+          } catch (apiError) {
+            console.error("Failed to fetch user data:", apiError);
+            // Keep the cached user if API fails
+          }
+        }
+      } catch {
+        // ignore storage errors
       }
-    });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      const ssoUser = session?.user;
-      if (ssoUser) {
-        const email = ssoUser.email || "";
-        const username = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || (email?.split("@")[0] ?? "User");
-        const u = { id: ssoUser.id, username, email, points: 0 } as User;
-        setUser(u);
-        try { localStorage.setItem("ecotrack:user", JSON.stringify(u)); } catch {}
+      // Hydrate from Supabase session if available
+      supabase.auth.getSession().then(({ data }) => {
+        const ssoUser = data.session?.user;
+        if (ssoUser) {
+          const email = ssoUser.email || "";
+          const username = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || (email?.split("@")[0] ?? "User");
+          const u = { id: ssoUser.id, username, email, points: 0 } as User;
+          setUser(u);
+          try { localStorage.setItem("ecotrack:user", JSON.stringify(u)); } catch {}
+        }
+      });
+
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+        const ssoUser = session?.user;
+        if (ssoUser) {
+          const email = ssoUser.email || "";
+          const username = ssoUser.user_metadata?.full_name || ssoUser.user_metadata?.name || (email?.split("@")[0] ?? "User");
+          const u = { id: ssoUser.id, username, email, points: 0 } as User;
+          setUser(u);
+          try { localStorage.setItem("ecotrack:user", JSON.stringify(u)); } catch {}
+        } else {
+          // User signed out from Supabase
+          setUser(null);
+          localStorage.removeItem("ecotrack:user");
+        }
+      });
+
+      subscription = sub.subscription;
+    };
+
+    initAuth();
+
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
       }
-    });
-
-    return () => { sub.subscription.unsubscribe(); };
+    };
   }, []);
 
   const login = (userData: User) => {

@@ -14,27 +14,31 @@ import { validateRecyclingImage, RECYCLING_IMAGE_GUIDELINES } from "@/lib/image-
 import { resizeImageForHabit } from "@/lib/image-compression";
 
 // Form schemas for different habit types
-const transportSchema = z.object({
+const baseHabitSchema = z.object({
+  description: z.string().optional(),
+  image: z.instanceof(File).optional(), // Expect a single File object
+  recycledItem: z.string().optional(),
+  startLocation: z.string().optional(),
+  endLocation: z.string().optional(),
+});
+
+const transportSchema = baseHabitSchema.extend({
   startLocation: z.string().min(1, "Start location is required"),
   endLocation: z.string().min(1, "End location is required"),
-  description: z.string().optional(),
-  image: z.any().optional(),
 });
 
-const recycleSchema = z.object({
+const recycleSchema = baseHabitSchema.extend({
   recycledItem: z.string().min(1, "Please select or enter the recycled item"),
-  description: z.string().optional(),
-  image: z.any().refine((files) => files?.length > 0, "Image is required for verification"),
+  image: z.instanceof(File, { message: "Image is required for verification" }),
 });
 
-const treeSchema = z.object({
-  description: z.string().optional(),
-  image: z.any().refine((files) => files?.length > 0, "Image is required for verification"),
+const treeSchema = baseHabitSchema.extend({
+  image: z.instanceof(File, { message: "Image is required for verification" }),
 });
 
-const energyWaterSchema = z.object({
+const energyWaterSchema = baseHabitSchema.extend({
   description: z.string().min(1, "Please describe your action"),
-  image: z.any().refine((files) => files?.length > 0, "Image is required for verification"),
+  image: z.instanceof(File, { message: "Image is required for verification" }),
 });
 
 // Common recycling items for the dropdown
@@ -62,29 +66,31 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
   const [imageValidation, setImageValidation] = useState<{errors: string[], warnings: string[]} | null>(null);
   const [isValidatingImage, setIsValidatingImage] = useState(false);
 
-  const getSchema = () => {
-    switch (habitType) {
+  const form = useForm({
+    resolver: zodResolver(getSchema(habitType)),
+    defaultValues: getDefaultValues(habitType),
+  });
+
+  function getSchema(type: HabitFormProps['habitType']) {
+    switch (type) {
       case "transport": return transportSchema;
       case "recycle": return recycleSchema;
       case "trees": return treeSchema;
-      default: return energyWaterSchema;
+      case "water": return energyWaterSchema;
+      default: return baseHabitSchema;
     }
-  };
+  }
 
-  const form = useForm({
-    resolver: zodResolver(getSchema()),
-    defaultValues: getDefaultValues(),
-  });
-
-  function getDefaultValues() {
-    switch (habitType) {
-      case "transport":
-        return { startLocation: "", endLocation: "", description: "" };
-      case "recycle":
-        return { recycledItem: "", description: "" };
-      default:
-        return { description: "" };
-    }
+  function getDefaultValues(type: HabitFormProps['habitType']) {
+    // All fields are optional in the base schema, so we can safely return undefined for all
+    // and let the specific schemas handle the 'required' validation.
+    return {
+      startLocation: undefined,
+      endLocation: undefined,
+      description: undefined,
+      recycledItem: undefined,
+      image: undefined,
+    };
   }
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,7 +102,7 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      form.setValue("image", e.target.files);
+      form.setValue("image", file as any); // Set the single file, casting to any to bypass TS error
       
       // Validate image if it's for recycling
       if (habitType === 'recycle') {
@@ -125,17 +131,17 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
     try {
       let compressedImageUrl = null;
       
-      if (data.image?.[0]) {
+      if (data.image) { // data.image is now a single File object
         // Compress image before submission
-        compressedImageUrl = await resizeImageForHabit(data.image[0]);
+        compressedImageUrl = await resizeImageForHabit(data.image);
       }
       
       const formData = {
         ...data,
         habitType,
-        imageFile: data.image?.[0], // Keep original file for potential fallback
+        imageFile: data.image, // Keep original file for potential fallback
         imageUrl: compressedImageUrl, // Use compressed image
-        distance: habitType === 'transport' ? calculatedDistance : null, // Only include distance for transport
+        distance: habitType === 'transport' ? (calculatedDistance || 0) : 0, // Ensure distance is always a number
       };
       
       onSubmit(formData);
@@ -145,8 +151,8 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
       const formData = {
         ...data,
         habitType,
-        imageFile: data.image?.[0],
-        distance: habitType === 'transport' ? calculatedDistance : null,
+        imageFile: data.image,
+        distance: habitType === 'transport' ? (calculatedDistance || 0) : 0, // Ensure distance is always a number
       };
       onSubmit(formData);
     }
@@ -162,8 +168,10 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
             lng: position.coords.longitude
           };
           setCurrentLocation(location);
-          // Auto-fill current location as start location
-          form.setValue('startLocation', `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`);
+          // Auto-fill current location as start location, only if habitType is transport
+          if (habitType === 'transport') {
+            form.setValue('startLocation', `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` as any);
+          }
           setIsGettingLocation(false);
         },
         (error) => {
@@ -193,8 +201,9 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
   };
   
   const handleDistanceCalculation = () => {
-    const startLocation = form.getValues('startLocation');
-    const endLocation = form.getValues('endLocation');
+    // Ensure startLocation and endLocation are strings, defaulting to empty if undefined
+    const startLocation = form.getValues('startLocation') || '';
+    const endLocation = form.getValues('endLocation') || '';
     
     // Check if locations are coordinates (lat, lng format)
     const coordRegex = /^-?\d+\.\d+,\s*-?\d+\.\d+$/;
@@ -341,10 +350,12 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
               {!showCustomInput ? (
                 <Select
                   onValueChange={(value) => {
-                    if (value === "custom") {
-                      setShowCustomInput(true);
-                    } else {
-                      form.setValue("recycledItem", value);
+                    if (habitType === "recycle") { // Only set recycledItem for recycle habit
+                      if (value === "custom") {
+                        setShowCustomInput(true);
+                      } else {
+                        form.setValue("recycledItem", value as any);
+                      }
                     }
                   }}
                 >
@@ -365,7 +376,9 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
                     value={customItem}
                     onChange={(e) => {
                       setCustomItem(e.target.value);
-                      form.setValue("recycledItem", e.target.value);
+                      if (habitType === "recycle") { // Only set recycledItem for recycle habit
+                        form.setValue("recycledItem", e.target.value as any);
+                      }
                     }}
                   />
                   <Button
@@ -374,7 +387,9 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
                     onClick={() => {
                       setShowCustomInput(false);
                       setCustomItem("");
-                      form.setValue("recycledItem", "");
+                      if (habitType === "recycle") { // Only clear recycledItem for recycle habit
+                        form.setValue("recycledItem", undefined as any); // Set to undefined instead of empty string
+                      }
                     }}
                   >
                     Back
@@ -419,6 +434,7 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
                 type="file"
                 id="image"
                 accept="image/*"
+                {...form.register("image")}
                 onChange={handleImageChange}
                 className="hidden"
               />
@@ -494,7 +510,7 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
           <div className="text-xs text-muted-foreground bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
             ⚠️ {habitType === "transport" 
               ? "Upload a photo showing you in the public vehicle for verification." 
-              : "Points will be awarded after image verification by our team."}
+              : "Points are awarded immediately upon successful upload."}
           </div>
 
             <div className="flex justify-end space-x-2 pt-4 sticky bottom-0 bg-background border-t border-border mt-4 pt-4 -mx-6 px-6">

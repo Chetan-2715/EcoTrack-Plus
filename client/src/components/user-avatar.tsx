@@ -161,17 +161,33 @@ export function UserAvatar({
               </p>
             </div>
             
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
+            <div className="flex justify-between space-x-2">
               <Button 
-                onClick={handleSaveAvatar} 
-                disabled={!selectedFile}
-                className="eco-gradient-primary text-white"
+                variant="destructive" 
+                onClick={() => {
+                  if (onAvatarChange) {
+                    onAvatarChange("");
+                  }
+                  setIsDialogOpen(false);
+                  setSelectedFile(null);
+                  setPreviewUrl(null);
+                }}
+                disabled={!avatarUrl}
               >
-                Save Photo
+                Remove Photo
               </Button>
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveAvatar} 
+                  disabled={!selectedFile}
+                  className="eco-gradient-primary text-white"
+                >
+                  Save Photo
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>

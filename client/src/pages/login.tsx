@@ -67,6 +67,10 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-2xl border border-border">
         <CardContent className="flex flex-col justify-center items-center py-8">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-foreground">Welcome back!</h1>
+            <p className="text-muted-foreground">Sign in to continue your eco-journey.</p>
+          </div>
           <form onSubmit={handleSubmit} className="w-full space-y-6">
             <div>
               <Label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">

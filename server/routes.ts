@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./supabase-storage";
 import { insertUserSchema, loginSchema, habitUpdateSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 
@@ -13,7 +13,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       data.email = data.email.toLowerCase();
       
       const user = await storage.createUser(data);
-      res.json({ user: { id: user.id, username: user.username, email: user.email, points: user.points } });
+      res.json({ 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          email: user.email, 
+          points: user.points,
+          avatarUrl: (user as any).avatarUrl || null,
+          createdAt: user.createdAt
+        } 
+      });
     } catch (error: any) {
       if (error.name === "ZodError") {
         const validationError = fromZodError(error);
@@ -51,7 +60,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      res.json({ user: { id: user.id, username: user.username, email: user.email, points: user.points } });
+      res.json({ 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          email: user.email, 
+          points: user.points,
+          avatarUrl: (user as any).avatarUrl || null,
+          createdAt: user.createdAt
+        } 
+      });
     } catch (error: any) {
       if (error.name === "ZodError") {
         const validationError = fromZodError(error);
@@ -77,6 +95,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: user.email, 
           points: user.points, 
           streak: user.streak,
+          avatarUrl: (user as any).avatarUrl || null,
+          createdAt: user.createdAt,
           rank 
         } 
       });
@@ -89,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/users/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { username, avatarUrl } = req.body as { username?: string; avatarUrl?: string };
+      const { username, avatarUrl, removeAvatar } = req.body as { username?: string; avatarUrl?: string; removeAvatar?: boolean };
       const user = await storage.getUser(id);
       if (!user) return res.status(404).json({ message: "User not found" });
       
@@ -98,8 +118,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: username ?? user.username,
       };
       
-      // Only include avatarUrl if it's provided (not undefined)
-      if (avatarUrl !== undefined) {
+      // Handle avatar removal
+      if (removeAvatar === true) {
+        updateData.avatarUrl = "";
+      } else if (avatarUrl !== undefined) {
         updateData.avatarUrl = avatarUrl;
       } else if ((user as any).avatarUrl) {
         updateData.avatarUrl = (user as any).avatarUrl;
@@ -107,10 +129,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updated = await storage.updateUserProfile(id, updateData);
       if (!updated) return res.status(500).json({ message: "Failed to update profile" });
-      res.json({ user: { id: updated.id, username: updated.username, email: updated.email, points: updated.points, streak: updated.streak, avatarUrl: (updated as any).avatarUrl } });
+      res.json({ user: { id: updated.id, username: updated.username, email: updated.email, points: updated.points, streak: updated.streak, avatarUrl: (updated as any).avatarUrl, createdAt: updated.createdAt } });
     } catch (error) {
       console.error('Profile update error:', error);
       res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Delete profile
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { password } = req.body;
+
+      // 1. Verify user password
+      const user = await storage.getUser(id);
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // 2. Delete user from storage
+      await storage.deleteUser(id);
+
+      res.status(200).json({ message: "Profile deleted successfully" });
+    } catch (error) {
+      console.error('Profile deletion error:', error);
+      res.status(500).json({ message: "Failed to delete profile" });
     }
   });
 
@@ -148,10 +192,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newCount = (existingHabit?.count || 0) + data.increment;
       const pointsEarned = data.increment * calculatePoints(data.habitType, data);
       
-      // All habits with images require verification
-      const needsVerification = !!data.imageUrl;
-      const actualPointsToAdd = needsVerification ? 0 : pointsEarned;
-
       // Create or update habit
       const habit = await storage.createOrUpdateHabit({
         userId,
@@ -164,12 +204,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endLocation: data.habitType === 'transport' ? data.endLocation : undefined,
         recycledItem: data.habitType === 'recycle' ? data.recycledItem : undefined,
         imageUrl: data.imageUrl,
-        verified: needsVerification ? 0 : 1, // 0 = pending, 1 = verified
+        verified: 1, // Always verified
         description: data.description,
       });
 
-      // Update user points (only if no verification needed)
-      const updatedUser = await storage.updateUserPoints(userId, user.points + actualPointsToAdd);
+      // Update user points
+      const updatedUser = await storage.updateUserPoints(userId, user.points + pointsEarned);
 
       res.json({ habit, user: updatedUser });
     } catch (error: any) {
@@ -211,18 +251,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's action history with details
+  app.get("/api/habits/:userId/history", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const limit = parseInt((req.query.limit as string) || "50");
+      const history = await storage.getUserHabitHistory(userId, limit);
+      res.json({ history });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get habit history" });
+    }
+  });
+
   // Leaderboard routes
   app.get("/api/leaderboard", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
       const leaderboard = await storage.getLeaderboard(limit);
       
+      // Only show real users (no demo users), all users from database are real
       const leaderboardWithRanks = leaderboard.map((user, index) => ({
         id: user.id,
         username: user.username,
         points: user.points,
         streak: user.streak,
         rank: index + 1,
+        avatarUrl: (user as any).avatarUrl || null,
       }));
 
       res.json({ leaderboard: leaderboardWithRanks });
