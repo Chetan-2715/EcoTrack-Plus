@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
 import { UserAvatar } from "@/components/user-avatar";
 import { Edit3, LogOut, Calendar, Trophy, Zap, Trash2 } from "lucide-react";
 import {
@@ -20,6 +21,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+import { ActivityHeatmapSkeleton } from "@/components/activity-heatmap-skeleton";
+
 export default function Profile() {
   const { user, login, logout } = useAuth();
   const [, setLocation] = useLocation();
@@ -27,58 +30,32 @@ export default function Profile() {
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [activity, setActivity] = useState<{ date: string; count: number }[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const { data: activityData, isLoading: isActivityLoading } = useQuery({
+    queryKey: ["/api/activity", user?.id],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/activity/${user!.id}?days=84`);
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
 
-  useEffect(() => {
-    if (!user) { setLocation("/login"); return; }
-    
-    // Update local state immediately
-    setUsername(user.username);
-    setAvatarUrl((user as any).avatarUrl || "");
-    
-    // Fetch both user data and activity in parallel for faster loading
-    (async () => {
-      setIsLoading(true);
-      try {
-        const [userRes, activityRes] = await Promise.all([
-          apiRequest("GET", `/api/users/${user.id}`),
-          apiRequest("GET", `/api/activity/${user.id}?days=84`)
-        ]);
-        
-        const [userData, activityData] = await Promise.all([
-          userRes.json(),
-          activityRes.json()
-        ]);
-        
-        if (userData.user) {
-          setAvatarUrl((userData.user as any).avatarUrl || "");
-          login(userData.user);
-        }
-        
-        setActivity(activityData.days || []);
-      } catch (error) {
-        console.error("Failed to fetch profile data:", error);
-        setActivity([]);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, [user?.id, setLocation]);
+  type ActivityDay = { date: string; count: number };
+  const activity: ActivityDay[] = activityData?.days || [];
 
   const weeks = useMemo(() => {
     // transform activity (84 days) into 12 weeks x 7 days grid
-    const out: { date: string; count: number }[][] = [];
+    const out: ActivityDay[][] = [];
     for (let i = 0; i < activity.length; i += 7) {
       out.push(activity.slice(i, i + 7));
     }
     return out;
   }, [activity]);
 
-  const totalActivity = activity.reduce((sum, day) => sum + day.count, 0);
-  const streak = activity.filter(day => day.count > 0).length;
+  const totalActivity = activity.reduce((sum: number, day: ActivityDay) => sum + day.count, 0);
+  const streak = activity.filter((day: ActivityDay) => day.count > 0).length;
 
   if (!user) return null;
 
@@ -261,7 +238,7 @@ export default function Profile() {
                       })}
                     </div>
                   )) : (
-                    <div className="text-xs text-muted-foreground py-4">Loading activity...</div>
+                    <ActivityHeatmapSkeleton />
                   )}
                 </div>
                 

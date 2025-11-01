@@ -26,6 +26,8 @@ function HomeOrDashboard() {
   return <Home />;
 }
 
+import AuthPage from "./pages/auth";
+
 function Router() {
   return (
     <Switch>
@@ -33,8 +35,8 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/rewards" component={Rewards} />
       <Route path="/leaderboard" component={Leaderboard} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
+      <Route path="/login" component={AuthPage} />
+      <Route path="/register" component={AuthPage} />
       <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
@@ -44,7 +46,7 @@ function Router() {
 function AppContent() {
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-br from-eco-mint/10 via-white to-eco-primary/5">
+      <div className="min-h-screen">
         <Navbar />
         <Router />
       </div>

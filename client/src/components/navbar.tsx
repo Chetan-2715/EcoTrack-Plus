@@ -52,11 +52,11 @@ export default function Navbar() {
       <div className="container mx-auto px-4 py-4">
         <nav className="flex items-center justify-between">
           <Link href="/">
-            <div className="flex items-center space-x-2 cursor-pointer">
+            <div className="flex items-center space-x-2 cursor-pointer logo-container group">
               <div className="w-10 h-10 eco-gradient-primary rounded-full flex items-center justify-center">
-                <Leaf className="text-white text-lg" />
+                <Leaf className="text-white text-lg leaf-icon transition-transform duration-300" />
               </div>
-              <span className="text-2xl font-bold text-eco-forest dark:text-eco-mint">EcoTrack+</span>
+              <span className="text-2xl font-bold text-eco-forest dark:text-eco-mint ecotrack-text">EcoTrack+</span>
             </div>
           </Link>
           
@@ -67,7 +67,7 @@ export default function Navbar() {
                 const Icon = item.icon;
                 return (
                   <Link key={item.path} href={item.path}>
-                    <div className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 cursor-pointer ${
+                    <div className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 cursor-pointer nav-icon-container ${
                       isActive(item.path) 
                         ? "bg-eco-primary/20 text-eco-primary shadow-sm" 
                         : "text-muted-foreground hover:text-eco-primary hover:bg-eco-primary/10"
@@ -104,7 +104,7 @@ export default function Navbar() {
             
             {!user && (
               <Link href="/register">
-                <Button className="eco-gradient-primary text-white hover:shadow-lg transition-all duration-200 hover:scale-105">
+                <Button className="bg-eco-primary text-white hover:shadow-lg transition-all duration-200 hover:scale-105 fill-on-hover" style={{'--hover-fill-color': 'black'} as React.CSSProperties}>
                   Get Started
                 </Button>
               </Link>
@@ -131,7 +131,7 @@ export default function Navbar() {
                 return (
                   <Link key={item.path} href={item.path}>
                     <div 
-                      className={`flex items-center space-x-3 py-3 px-2 rounded-lg transition-all duration-200 ${
+                      className={`flex items-center space-x-3 py-3 px-2 rounded-lg transition-all duration-200 nav-icon-container ${
                         isActive(item.path) 
                           ? "bg-eco-primary/20 text-eco-primary" 
                           : "text-muted-foreground hover:text-eco-primary hover:bg-eco-primary/10"
@@ -172,7 +172,8 @@ export default function Navbar() {
               <div className="pt-2 border-t border-border">
                 <Link href="/register">
                   <Button 
-                    className="w-full eco-gradient-primary text-white hover:shadow-lg transition-all duration-200"
+                    className="w-full bg-eco-primary text-white hover:shadow-lg transition-all duration-200 fill-on-hover"
+                    style={{ ['--hover-fill-color' as string]: 'black' }}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Get Started

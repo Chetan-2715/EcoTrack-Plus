@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface HabitCardProps {
   habitType: 'recycle' | 'transport' | 'energy' | 'water' | 'trees';
@@ -13,6 +14,7 @@ interface HabitCardProps {
   buttonClass: string;
   countColor: string;
   onIncrement: () => void;
+
 }
 
 export default function HabitCard({
@@ -25,8 +27,10 @@ export default function HabitCard({
   gradientClass,
   buttonClass,
   countColor,
-  onIncrement
+  onIncrement,
 }: HabitCardProps) {
+
+
   const getCountLabel = () => {
     switch (habitType) {
       case 'recycle':
@@ -62,10 +66,16 @@ export default function HabitCard({
   };
 
   return (
-    <Card className="bg-white rounded-2xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-gray-100">
+    <Card 
+      className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg card-enhanced overflow-hidden border border-gray-100"
+      data-testid={`habit-card-${habitType}`}
+    >
       <div className={`${gradientClass} p-6 text-white`}>
         <div className="flex items-center justify-between mb-4">
-          {icon}
+          <div>
+            {icon}
+          </div>
+
           <span className="text-sm font-medium bg-white/20 px-3 py-1 rounded-full">
             +{points} points
           </span>
@@ -76,11 +86,12 @@ export default function HabitCard({
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
           <span className="text-gray-600">{getCountLabel()}</span>
-          <span className={`text-2xl font-bold ${countColor}`}>{count}</span>
+          <span className={`text-2xl font-bold ${countColor}`} data-testid={`count-${habitType}`}>{count}</span>
         </div>
         <Button
           onClick={onIncrement}
-          className={`w-full ${buttonClass} text-white py-3 rounded-xl font-semibold transition-colors duration-200`}
+          className={`w-full ${buttonClass} text-white py-3 rounded-xl font-semibold transition-all duration-200 button-glow`}
+          data-testid={`button-${habitType}`}
         >
           <Plus className="mr-2" />
           {getButtonLabel()}

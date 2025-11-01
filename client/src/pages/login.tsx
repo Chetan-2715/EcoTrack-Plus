@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sprout } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../lib/auth";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+
 // Email/password via Supabase + OAuth for Google/Microsoft
 import { supabase } from "@/lib/supabase";
 
@@ -64,41 +66,45 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+
       <Card className="w-full max-w-md shadow-2xl border border-border">
-        <CardContent className="flex flex-col justify-center items-center py-8">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-foreground">Welcome back!</h1>
-            <p className="text-muted-foreground">Sign in to continue your eco-journey.</p>
+
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 eco-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
+            <Sprout className="text-white text-2xl" />
           </div>
+          <CardTitle className="text-2xl font-bold text-foreground">Welcome Back!</CardTitle>
+          <p className="text-muted-foreground mt-2">Sign in to continue your eco-journey.</p>
+        </CardHeader>
+        <CardContent>
           <form onSubmit={handleSubmit} className="w-full space-y-6">
-            <div>
-              <Label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                Email
-              </Label>
+            <div className="relative floating-label-group">
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-eco-primary focus:border-transparent transition-all duration-200"
+                placeholder=" "
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-eco-primary focus:border-transparent transition-all duration-200 floating-label-input"
                 required
               />
-            </div>
-            <div>
-              <Label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
-                Password
+              <Label htmlFor="email" className="absolute left-4 top-2 text-gray-500 transition-all duration-200 floating-label">
+                Email
               </Label>
+            </div>
+            <div className="relative floating-label-group">
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-eco-primary focus:border-transparent transition-all duration-200"
+                placeholder=" "
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-eco-primary focus:border-transparent transition-all duration-200 floating-label-input"
                 required
               />
+              <Label htmlFor="password" className="absolute left-4 top-2 text-gray-500 transition-all duration-200 floating-label">
+                Password
+              </Label>
             </div>
             <Button
               type="submit"
@@ -111,9 +117,7 @@ export default function Login() {
               <Button type="button" variant="outline" className="w-full py-3 rounded-xl" onClick={() => signInWithProvider("google")}>
                 Continue with Google
               </Button>
-              <Button type="button" variant="outline" className="w-full py-3 rounded-xl" onClick={() => signInWithProvider("azure")}>
-                Continue with Microsoft
-              </Button>
+
             </div>
           </form>
           <div className="mt-6 text-center w-full">
@@ -126,6 +130,6 @@ export default function Login() {
           </div>
         </CardContent>
       </Card>
-    </div>
+
   );
 }

@@ -65,8 +65,8 @@ export default function Leaderboard() {
     <main className="py-8 min-h-screen">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Eco Leaderboard</h1>
-          <p className="text-xl text-gray-600">See how you stack up against other eco-warriors worldwide</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">Eco Leaderboard</h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300">See how you stack up against other eco-warriors worldwide</p>
         </div>
 
         {/* Current User Ranking */}
