@@ -67,12 +67,12 @@ export default function HabitCard({
 
   return (
     <Card 
-      className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg card-enhanced overflow-hidden border border-gray-100"
+      className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg card-enhanced overflow-hidden border border-gray-100 group"
       data-testid={`habit-card-${habitType}`}
     >
       <div className={`${gradientClass} p-6 text-white`}>
         <div className="flex items-center justify-between mb-4">
-          <div>
+          <div className="transition-transform duration-500 group-hover:[transform:rotateY(360deg)]">
             {icon}
           </div>
 

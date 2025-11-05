@@ -3,7 +3,7 @@ import { useAuth } from "../lib/auth";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, Check, Lock } from "lucide-react";
+import { Coins, Check, Lock, Shield } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -11,16 +11,16 @@ import { GrassBackground } from "@/components/grass-background";
 import { ParticlesEffect } from "@/components/particles-effect";
 
 export default function Rewards() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!user) {
+    if (!loading && !user) {
       setLocation("/login");
     }
-  }, [user, setLocation]);
+  }, [user, loading, setLocation]);
 
   // Fetch all rewards
   const { data: rewardsData } = useQuery({
@@ -54,6 +54,10 @@ export default function Rewards() {
       });
     },
   });
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a spinner component
+  }
 
   if (!user) {
     return null;
@@ -96,18 +100,26 @@ export default function Rewards() {
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-3d text-glow">Eco Rewards</h1>
             <p className="text-xl text-muted-foreground mb-6">Unlock amazing rewards as you progress on your eco journey</p>
-            <div className="inline-flex items-center bg-white/95 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg pulse-glow">
-              <Coins className="text-eco-primary text-xl mr-3" />
-              <span className="text-lg font-semibold text-gray-700">Your Points: </span>
-              <span className="text-2xl font-bold text-eco-primary ml-2" data-testid="user-points">{user.points}</span>
+            <div className="group inline-flex items-center bg-white/95 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg pulse-glow">
+              <Coins className="text-eco-primary text-xl mr-3 transition-colors duration-300 group-hover:text-green-500" />
+              <span className="text-lg font-semibold text-gray-700 transition-colors duration-300 group-hover:text-green-500">Your Points: </span>
+              <span className="text-2xl font-bold text-eco-primary ml-2 transition-colors duration-300 group-hover:text-green-500" data-testid="user-points">{user.points}</span>
             </div>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 relative">
-            {/* Particle Effects */}
-            <ParticlesEffect count={40} />
+
             
             {rewards.map((reward: any, index: number) => {
+              if (index === 0) {
+                reward = {
+                  id: "new-badge",
+                  name: "Eco-Warrior",
+                  description: "You have shown great commitment to the cause!",
+                  pointsRequired: 100,
+                  icon: <Shield />,
+                };
+              }
               const rewardStatus = getRewardStatus(reward);
               const isLocked = rewardStatus.status === 'locked';
               const isClaimed = rewardStatus.status === 'claimed';
@@ -116,7 +128,7 @@ export default function Rewards() {
               return (
                 <Card 
                   key={reward.id} 
-                  className={`bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-gray-100 relative ${isLocked ? 'opacity-75' : ''}`}
+                  className={`group bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-gray-100 relative ${isLocked ? 'opacity-75' : ''}`}
                 >
                   {isLocked && (
                     <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold z-10">
@@ -128,15 +140,15 @@ export default function Rewards() {
                       Claimed
                     </div>
                   )}
-                  <div className={`${getGradientClass(index)} p-6 text-white text-center ${isLocked ? 'opacity-75' : ''} relative`}>
-                    <div className="text-6xl mb-4 icon-container">{reward.icon}</div>
+                  <div className={`${getGradientClass(index)} p-6 text-white text-center ${isLocked ? 'opacity-75' : ''} relative h-64 flex flex-col justify-center items-center transition-all duration-300 group-hover:-translate-y-16`}>
+                    <div className="text-6xl mb-4 icon-container transition-transform duration-300 group-hover:scale-110">{reward.icon}</div>
                     <h3 className="text-2xl font-bold mb-2">{reward.name}</h3>
                     <div className="flex items-center justify-center">
                       <Coins className="mr-2" />
                       <span className="text-xl font-semibold">{reward.pointsRequired} Points</span>
                     </div>
                   </div>
-                  <CardContent className="p-6">
+                  <CardContent className="p-6 absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                     <p className="text-gray-600 mb-6 leading-relaxed">{reward.description}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">Required: {reward.pointsRequired} pts</span>

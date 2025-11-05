@@ -24,11 +24,11 @@ import {
 import { ActivityHeatmapSkeleton } from "@/components/activity-heatmap-skeleton";
 
 export default function Profile() {
-  const { user, login, logout } = useAuth();
+  const { user, login, logout, loading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [username, setUsername] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [username, setUsername] = useState(user?.username || "");
+  const [avatarUrl, setAvatarUrl] = useState((user as any)?.avatarUrl || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
@@ -41,6 +41,12 @@ export default function Profile() {
     },
     enabled: !!user?.id,
   });
+
+  useEffect(() => {
+    if (!loading && !user) {
+      setLocation("/login");
+    }
+  }, [user, loading, setLocation]);
 
   type ActivityDay = { date: string; count: number };
   const activity: ActivityDay[] = activityData?.days || [];
@@ -56,6 +62,10 @@ export default function Profile() {
 
   const totalActivity = activity.reduce((sum: number, day: ActivityDay) => sum + day.count, 0);
   const streak = activity.filter((day: ActivityDay) => day.count > 0).length;
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a spinner component
+  }
 
   if (!user) return null;
 

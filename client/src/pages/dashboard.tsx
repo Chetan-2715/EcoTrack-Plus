@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../lib/auth";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Recycle, Train, Droplet, Trees, History, Calendar, Image as ImageIcon } from "lucide-react";
+import { Recycle, Train, Droplet, Trees, History, Calendar, Image as ImageIcon, Trash2 } from "lucide-react";
 import HabitCard from "@/components/habit-card";
 import { HabitForm } from "@/components/habit-forms";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,9 +10,10 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { GrassBackground } from "@/components/grass-background";
+import { Button } from "@/components/ui/button";
 
 export default function Dashboard() {
-  const { user, login } = useAuth();
+  const { user, login, loading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -21,10 +22,10 @@ export default function Dashboard() {
 
 
   useEffect(() => {
-    if (!user) {
+    if (!loading && !user) {
       setLocation("/login");
     }
-  }, [user, setLocation]);
+  }, [user, loading, setLocation]);
 
   // Fetch user details
   const { data: userDetails } = useQuery({
@@ -97,10 +98,38 @@ export default function Dashboard() {
       });
     },
   });
+
+  const deleteHabitMutation = useMutation({
+    mutationFn: async (actionId: string) => {
+      const response = await apiRequest("DELETE", `/api/habits/${user?.id}/history/${actionId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/habits", user?.id, "today"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/habits", user?.id, "history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity", user?.id] });
+      toast({
+        title: "Action Deleted",
+        description: "The selected action has been removed.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete action",
+        variant: "destructive",
+      });
+    },
+  });
   
   const openForm = (habitType: 'recycle' | 'transport' | 'water' | 'trees') => {
     setActiveForm(habitType);
   };
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a spinner component
+  }
 
   if (!user) {
     return null;
@@ -121,7 +150,7 @@ export default function Dashboard() {
       <main className="py-8 relative z-10">
         <div className="container mx-auto px-4">
           {/* Habit Tracker Cards */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
             <div data-testid="habit-card-recycle">
               <HabitCard
                 habitType="recycle"
@@ -246,11 +275,10 @@ export default function Dashboard() {
                     return (
                       <div
                         key={action.id}
-                        onClick={() => setSelectedAction(action)}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                         data-testid={`action-item-${action.id}`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-grow cursor-pointer" onClick={() => setSelectedAction(action)}>
                           <div className="p-2 bg-white rounded-lg shadow-sm">
                             {getHabitIcon(action.habitType)}
                           </div>
@@ -264,14 +292,25 @@ export default function Dashboard() {
                         </div>
                         <div className="flex items-center gap-4">
                           {action.imageUrl && (
-                            <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <div className="flex items-center gap-1 text-sm text-gray-500" onClick={() => setSelectedAction(action)}>
                               <ImageIcon className="w-4 h-4" />
                             </div>
                           )}
-                          <div className="text-right">
+                          <div className="text-right" onClick={() => setSelectedAction(action)}>
                             <div className="text-sm font-semibold text-eco-primary">+{action.pointsEarned} pts</div>
                             <div className="text-xs text-gray-500">×{action.count}</div>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteHabitMutation.mutate(action.id);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     );

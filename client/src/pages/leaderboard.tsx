@@ -6,7 +6,7 @@ import { Trophy, Flame } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Leaderboard() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
 
   // Fetch leaderboard data
@@ -22,10 +22,14 @@ export default function Leaderboard() {
   });
 
   useEffect(() => {
-    if (!user) {
+    if (!loading && !user) {
       setLocation("/login");
     }
-  }, [user, setLocation]);
+  }, [user, loading, setLocation]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a spinner component
+  }
 
   if (!user) {
     return null;
@@ -35,18 +39,6 @@ export default function Leaderboard() {
   const topThree = leaderboard.slice(0, 3);
   const remaining = leaderboard.slice(3);
 
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return "🏆";
-      case 2:
-        return "🥈";
-      case 3:
-        return "🥉";
-      default:
-        return null;
-    }
-  };
 
   const getRankCardClass = (rank: number) => {
     switch (rank) {
@@ -79,7 +71,7 @@ export default function Leaderboard() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Your Current Ranking</h3>
-                  <p className="text-gray-600">Keep going! You're doing great! 🌱</p>
+                  <p className="text-gray-600">Keep going! You're doing great! ðŸŒ±</p>
                 </div>
               </div>
               <div className="text-right">
@@ -105,7 +97,9 @@ export default function Leaderboard() {
                       />
                     </div>
                   ) : (
-                    <div className="text-6xl mb-4">{getRankIcon(user.rank) || "🏆"}</div>
+                    <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mb-4">
+                      <span className="text-white font-bold text-4xl">#{user.rank}</span>
+                    </div>
                   )}
                   <div className="text-4xl font-bold mb-2">{user.rank === 1 ? "1st" : user.rank === 2 ? "2nd" : "3rd"}</div>
                   <h3 className="text-xl font-bold mb-2">{user.username}</h3>

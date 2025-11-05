@@ -3,13 +3,15 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "../lib/auth";
 import { Leaf, Menu, X, Home, Gift, User, Sun, Moon, LogOut, Trophy } from "lucide-react";
 import { UserAvatar } from "./user-avatar";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function Navbar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [activeLinkStyle, setActiveLinkStyle] = useState({ left: 0, width: 0 });
+  const navRef = useRef<HTMLDivElement>(null);
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {
@@ -42,6 +44,16 @@ export default function Navbar() {
     return false;
   };
 
+  useEffect(() => {
+    if (navRef.current) {
+      const activeItem = navRef.current.querySelector('[data-active="true"]');
+      if (activeItem) {
+        const { offsetLeft, offsetWidth } = activeItem as HTMLElement;
+        setActiveLinkStyle({ left: offsetLeft + offsetWidth / 2 - 20, width: 40 });
+      }
+    }
+  }, [location]);
+
   const handleLogout = () => {
     logout();
     setIsMobileMenuOpen(false);
@@ -60,17 +72,19 @@ export default function Navbar() {
             </div>
           </Link>
           
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden md:flex items-center space-x-6 relative" ref={navRef}>
+            <div className={`absolute rounded-full h-10 w-10 top-1/2 -translate-y-1/2 transition-all duration-300 ${isDarkMode ? 'bg-green-500' : 'bg-black'} mix-blend-difference`}
+              style={{ left: activeLinkStyle.left, width: activeLinkStyle.width }}></div>
             {navItems
               .filter(item => item.show)
               .map(item => {
                 const Icon = item.icon;
                 return (
                   <Link key={item.path} href={item.path}>
-                    <div className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 cursor-pointer nav-icon-container ${
+                    <div data-active={isActive(item.path)} className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 cursor-pointer nav-icon-container z-10 ${
                       isActive(item.path) 
-                        ? "bg-eco-primary/20 text-eco-primary shadow-sm" 
-                        : "text-muted-foreground hover:text-eco-primary hover:bg-eco-primary/10"
+                        ? "text-white" 
+                        : "text-muted-foreground"
                     }`} title={item.label}>
                       <Icon />
                     </div>
@@ -86,7 +100,10 @@ export default function Navbar() {
               className="p-2 rounded-lg hover:bg-eco-primary/10 hover:text-eco-primary transition-all duration-200 hover:scale-110"
               title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              <div className="relative w-5 h-5">
+                <Sun className={`absolute transition-all duration-500 ${isDarkMode ? 'transform rotate-90 opacity-0' : 'transform rotate-0 opacity-100'}`} />
+                <Moon className={`absolute transition-all duration-500 ${isDarkMode ? 'transform rotate-0 opacity-100' : 'transform -rotate-90 opacity-0'}`} />
+              </div>
             </Button>
             
             {/* User Menu */}
@@ -152,7 +169,10 @@ export default function Navbar() {
                 onClick={toggleTheme}
                 className="w-full justify-start space-x-3 py-3 px-2 rounded-lg hover:bg-eco-primary/10 hover:text-eco-primary transition-all duration-200"
               >
-                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                <div className="relative w-5 h-5">
+                  <Sun className={`absolute transition-all duration-500 ${isDarkMode ? 'transform rotate-90 opacity-0' : 'transform rotate-0 opacity-100'}`} />
+                  <Moon className={`absolute transition-all duration-500 ${isDarkMode ? 'transform rotate-0 opacity-100' : 'transform -rotate-90 opacity-0'}`} />
+                </div>
                 <span className="font-medium">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
               </Button>
               
