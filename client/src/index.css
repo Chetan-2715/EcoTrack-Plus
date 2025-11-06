@@ -347,19 +347,7 @@
   transition: text-shadow 0.3s ease-in-out;
 }
 
-.title-container:hover .title-text {
-  text-shadow: 
-    0 0 20px rgba(16, 185, 129, 0.5),
-    0 0 40px rgba(16, 185, 129, 0.3),
-    0 0 60px rgba(16, 185, 129, 0.2),
-    1px 1px 0 rgba(0, 0, 0, 0.1),
-    2px 2px 0 rgba(0, 0, 0, 0.1),
-    3px 3px 0 rgba(0, 0, 0, 0.1),
-    4px 4px 0 rgba(0, 0, 0, 0.08),
-    5px 5px 0 rgba(0, 0, 0, 0.06),
-    6px 6px 0 rgba(0, 0, 0, 0.04),
-    7px 7px 15px rgba(0, 0, 0, 0.3);
-}
+
 
 .fill-on-hover {
   position: relative;
@@ -414,11 +402,7 @@
   transition: text-shadow 0.3s ease-in-out;
 }
 
-.text-hover-glow:hover {
-  text-shadow: 
-    0 0 10px rgba(16, 185, 129, 0.5),
-    0 0 20px rgba(16, 185, 129, 0.3);
-}
+
 
 .flip-card {
   background-color: transparent;
@@ -469,4 +453,53 @@
   background-color: var(--background);
   padding-left: 0.25rem;
   padding-right: 0.25rem;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.float-in-on-scroll {
+  animation: float-in 1s ease-out forwards;
+}
+
+.cursor-trail {
+  position: absolute;
+  pointer-events: none;
+  animation: fade-out 0.2s forwards;
+  font-size: 1.5rem;
+  z-index: 9999;
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(0, -20px);
+  }
 }

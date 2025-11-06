@@ -1,5 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { Link } from "wouter";
 import { useAuth } from "../lib/auth";
 import { 
@@ -17,9 +24,14 @@ import {
 } from "lucide-react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Stars } from "@react-three/drei";
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import * as THREE from "three";
 import { GrassBackground } from "@/components/grass-background";
+import { CursorTrail } from '@/components/cursor-trail';
+import { useOnScreen } from '@/hooks/use-on-screen';
+import { useWebGLSupport } from '@/hooks/use-webgl-support';
+import ErrorBoundary from '@/components/error-boundary';
+import { HoverOrb } from "@/components/hover-orb";
 
 // Interactive Globe mesh
 function GlobeMesh() {
@@ -110,6 +122,9 @@ function RotatingGlobe() {
 
 export default function Home() {
   const { user } = useAuth();
+  const featuresRef = useRef<HTMLDivElement>(null);
+  const isFeaturesVisible = useOnScreen(featuresRef);
+  const isWebGLSupported = useWebGLSupport();
 
   const scrollToFeatures = () => {
     const featuresSection = document.getElementById('features');
@@ -120,27 +135,31 @@ export default function Home() {
 
   return (
     <main className="relative">
+      <CursorTrail />
       {/* Grass Background with Parallax */}
       <GrassBackground />
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-
+      <section className="relative flex justify-center pb-16 z-1">
+        <HoverOrb />
         <div className="absolute inset-0 opacity-5 eco-bg-pattern"></div>
         
-        <div className="container mx-auto px-4 text-center relative z-10">
+        <div className="container mx-auto px-4 text-center relative z-10 pt-16">
+          <h1 className="text-6xl md:text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-eco-primary to-eco-secondary fade-in-up">
+            EcoTrack+
+          </h1>
           <div className="max-w-4xl mx-auto">
-            <div className="flex flex-row items-center justify-center gap-6">
+            <div className="flex flex-row items-center justify-center gap-6 mt-8">
               <div className="flex flex-col justify-center title-container">
-                <span className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-eco-primary to-eco-secondary leading-tight text-3d title-text">
+                <span className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-eco-primary to-eco-secondary leading-tight title-text">
                   Track Your Habits
                 </span>
-                <span className="text-5xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-eco-primary to-eco-secondary leading-tight text-3d title-text">
+                <span className="text-5xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-eco-primary to-eco-secondary leading-tight title-text">
                   Save the Planet
                 </span>
               </div>
               <div className="flex items-center h-full">
-                <RotatingGlobe />
+                {isWebGLSupported ? <RotatingGlobe /> : <div>Could not load globe.</div>}
               </div>
             </div>
             
@@ -191,73 +210,92 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-background/95 dark:bg-background/95 relative z-10 backdrop-blur-sm">
+      <section 
+        id="features" 
+        ref={featuresRef}
+        className={`py-6 bg-background/95 dark:bg-background/95 relative z-10 backdrop-blur-sm mt-16 ${isFeaturesVisible ? 'float-in-on-scroll' : 'opacity-0'}`}>
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-eco-primary to-eco-secondary mb-6 text-3d text-hover-glow">Why Choose EcoTrack+?</h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto text-hover-glow">Discover how our platform makes sustainable living fun, rewarding, and impactful.</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Feature Card 1 */}
-            <Card className="eco-gradient-primary shadow-lg card-enhanced border-none group h-80 overflow-hidden">
-              <CardContent className="p-8 text-center h-full relative">
-                <div className="absolute inset-0 flex flex-col items-center justify-center transition-transform duration-300 group-hover:-translate-y-8">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-white/20 transition-transform duration-300 group-hover:rotate-360">
-                    <TrendingUp className="text-white text-2xl" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white">Track Progress</h3>
-                </div>
-                <div className="absolute bottom-8 left-0 right-0 px-8">
-                  <p className="text-white/80 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300">Monitor your daily eco-friendly activities and see your positive impact grow over time.</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Feature Card 2 */}
-            <Card className="bg-gradient-to-br from-eco-secondary to-eco-primary shadow-lg card-enhanced border-none group h-80 overflow-hidden">
-              <CardContent className="p-8 text-center h-full relative">
-                <div className="absolute inset-0 flex flex-col items-center justify-center transition-transform duration-300 group-hover:-translate-y-8">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-white/20 transition-transform duration-300 group-hover:rotate-360">
-                    <Trophy className="text-white text-2xl" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white">Earn Rewards</h3>
-                </div>
-                <div className="absolute bottom-8 left-0 right-0 px-8">
-                  <p className="text-white/80 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300">Collect eco-points and unlock amazing rewards, badges, and certificates for your efforts.</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Feature Card 3 */}
-            <Card className="eco-gradient-sky shadow-lg card-enhanced border-none group h-80 overflow-hidden">
-              <CardContent className="p-8 text-center h-full relative">
-                <div className="absolute inset-0 flex flex-col items-center justify-center transition-transform duration-300 group-hover:-translate-y-8">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-white/20 transition-transform duration-300 group-hover:rotate-360">
-                    <Users className="text-white text-2xl" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white">Join Community</h3>
-                </div>
-                <div className="absolute bottom-8 left-0 right-0 px-8">
-                  <p className="text-white/80 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300">Connect with like-minded eco-warriors and compete on the global leaderboard.</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Feature Card 4 */}
-            <Card className="bg-gradient-to-br from-eco-earth to-eco-primary shadow-lg card-enhanced border-none group h-80 overflow-hidden">
-              <CardContent className="p-8 text-center h-full relative">
-                <div className="absolute inset-0 flex flex-col items-center justify-center transition-transform duration-300 group-hover:-translate-y-8">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-white/20 transition-transform duration-300 group-hover:rotate-360">
-                    <Globe className="text-white text-2xl" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white">Save Planet</h3>
-                </div>
-                <div className="absolute bottom-8 left-0 right-0 px-8">
-                  <p className="text-white/80 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300">Make a real difference with every action you track and inspire others to join the movement.</p>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            {/* Left Column: Text Content */}
+            <div className="md:w-1/3 text-left">
+              <h2 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-eco-primary to-eco-secondary mb-6 text-3d text-hover-glow">Why Choose EcoTrack+?</h2>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto text-hover-glow">Discover how our platform makes sustainable<br />living fun, rewarding, and impactful.</p>
+            </div>
+
+            {/* Right Column: Carousel */}
+            <div className="md:w-2/3">
+              <Carousel opts={{ loop: true, dragFree: true, axis: 'x' }} className="w-full">
+                <CarouselContent className="-ml-2">
+                  {/* Feature Card 1 */}
+                  <CarouselItem className="pl-2 basis-1/2">
+                    <Card className="eco-gradient-primary shadow-lg card-enhanced border-none group h-80 w-80 overflow-hidden">
+                      <CardContent className="p-8 text-center h-full relative">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center transition-transform duration-300 group-hover:-translate-y-8">
+                          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-white/20 transition-transform duration-300 group-hover:rotate-360">
+                            <TrendingUp className="text-white text-2xl" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Track Progress</h3>
+                        </div>
+                        <div className="absolute bottom-8 left-0 right-0 px-8">
+                          <p className="text-white/80 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300">Monitor your daily eco-friendly activities and see your positive impact grow over time.</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                  
+                  {/* Feature Card 2 */}
+                  <CarouselItem className="pl-2 basis-1/2">
+                    <Card className="bg-gradient-to-br from-eco-secondary to-eco-primary shadow-lg card-enhanced border-none group h-80 w-80 overflow-hidden">
+                      <CardContent className="p-8 text-center h-full relative">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center transition-transform duration-300 group-hover:-translate-y-8">
+                          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-white/20 transition-transform duration-300 group-hover:rotate-360">
+                            <Trophy className="text-white text-2xl" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Earn Rewards</h3>
+                        </div>
+                        <div className="absolute bottom-8 left-0 right-0 px-8">
+                          <p className="text-white/80 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300">Collect eco-points and unlock amazing rewards, badges, and certificates for your efforts.</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                  
+                  {/* Feature Card 3 */}
+                  <CarouselItem className="pl-2 basis-1/2">
+                    <Card className="eco-gradient-sky shadow-lg card-enhanced border-none group h-80 w-80 overflow-hidden">
+                      <CardContent className="p-8 text-center h-full relative">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center transition-transform duration-300 group-hover:-translate-y-8">
+                          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-white/20 transition-transform duration-300 group-hover:rotate-360">
+                            <Users className="text-white text-2xl" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Join Community</h3>
+                        </div>
+                        <div className="absolute bottom-8 left-0 right-0 px-8">
+                          <p className="text-white/80 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300">Connect with like-minded eco-warriors and compete on the global leaderboard.</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                  
+                  {/* Feature Card 4 */}
+                  <CarouselItem className="pl-2 basis-1/2">
+                    <Card className="bg-gradient-to-br from-eco-earth to-eco-primary shadow-lg card-enhanced border-none group h-80 w-80 overflow-hidden">
+                      <CardContent className="p-8 text-center h-full relative">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center transition-transform duration-300 group-hover:-translate-y-8">
+                          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-white/20 transition-transform duration-300 group-hover:rotate-360">
+                            <Globe className="text-white text-2xl" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white">Save Planet</h3>
+                        </div>
+                        <div className="absolute bottom-8 left-0 right-0 px-8">
+                          <p className="text-white/80 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300">Make a real difference with every action you track and inspire others to join the movement.</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                </CarouselContent>
+              </Carousel>
+            </div>
           </div>
         </div>
       </section>

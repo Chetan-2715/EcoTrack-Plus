@@ -71,7 +71,7 @@ export default function Leaderboard() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Your Current Ranking</h3>
-                  <p className="text-gray-600">Keep going! You're doing great! ðŸŒ±</p>
+                  <p className="text-gray-600">Keep going! You're doing great, {(userDetails as any)?.user?.username}!</p>
                 </div>
               </div>
               <div className="text-right">

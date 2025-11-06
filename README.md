@@ -1,4 +1,5 @@
 # 🌱 EcoTrack+
+Track Your Habits Save the Planet <br><br>
 
 **EcoTrack+** is a comprehensive full-stack web application that gamifies environmental sustainability by allowing users to track eco-friendly habits, earn points, compete on leaderboards, and make a real difference for the planet. Built with modern technologies and a beautiful, responsive UI.
 

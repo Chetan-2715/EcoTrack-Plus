@@ -143,7 +143,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 max-w-md">
+      <div className="container mx-auto p-4 max-w-4xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-semibold text-foreground">Profile</h1>
@@ -158,126 +158,127 @@ export default function Profile() {
         </div>
 
         {/* Profile Photo and Name Section */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center text-center space-y-4">
-              {/* Large Profile Photo */}
-              <UserAvatar 
-                username={username}
-                avatarUrl={avatarUrl}
-                size="xl"
-                showEdit={true}
-                onAvatarChange={handleAvatarChange}
-                className="ring-4 ring-eco-primary/20"
-              />
-              
-              {/* Editable Name */}
-              <div className="w-full">
-                <div className="flex items-center justify-center">
-                  <Input 
-                    value={username} 
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="max-w-xs text-center text-lg font-semibold border border-border rounded-md bg-background"
-                    onBlur={handleNameEdit}
-                    onKeyDown={(e) => e.key === 'Enter' && handleNameEdit()}
-                  />
-                </div>
+        <div className="flex flex-col md:flex-row gap-6 mb-6">
+          <Card className="mb-6 md:mb-0 md:flex-1">
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center text-center space-y-4">
+                {/* Large Profile Photo */}
+                <UserAvatar 
+                  username={username}
+                  avatarUrl={avatarUrl}
+                  size="xl"
+                  showEdit={true}
+                  onAvatarChange={handleAvatarChange}
+                  className="ring-4 ring-eco-primary/20"
+                />
                 
-                {/* Date Joined */}
-                {(user as any).createdAt && (
-                  <div className="mt-2 text-sm text-muted-foreground flex items-center justify-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>
-                      Joined {new Date((user as any).createdAt).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </span>
+                {/* Editable Name */}
+                <div className="w-full">
+                  <div className="flex items-center justify-center">
+                    <Input 
+                      value={username} 
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="max-w-xs text-center text-lg font-semibold border border-border rounded-md bg-background"
+                      onBlur={handleNameEdit}
+                      onKeyDown={(e) => e.key === 'Enter' && handleNameEdit()}
+                    />
                   </div>
-                )}
-              </div>
-              
-              {/* Stats Row */}
-              <div className="grid grid-cols-3 gap-4 w-full pt-4 border-t border-border">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-eco-primary">{user.points}</div>
-                  <div className="text-xs text-muted-foreground">Points</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-eco-secondary">{totalActivity}</div>
-                  <div className="text-xs text-muted-foreground">Actions</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-eco-sky">{streak}</div>
-                  <div className="text-xs text-muted-foreground">Active Days</div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Activity Heatmap */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5 text-eco-primary" />
-                <h3 className="font-semibold text-foreground">Activity Heatmap</h3>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Last 12 weeks (84 days)</div>
-                <div className="flex gap-1 overflow-x-auto p-2 bg-muted/20 rounded-lg">
-                  {weeks.length > 0 ? weeks.map((w, i) => (
-                    <div key={i} className="flex flex-col gap-1">
-                      {w.map((d) => {
-                        const dateObj = new Date(d.date);
-                        const formattedDate = dateObj.toLocaleDateString('en-US', { 
-                          month: 'short', 
+                  
+                  {/* Date Joined */}
+                  {(user as any).createdAt && (
+                    <div className="mt-2 text-sm text-muted-foreground flex items-center justify-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        Joined {new Date((user as any).createdAt).toLocaleDateString('en-US', {
+                          month: 'long',
                           day: 'numeric',
                           year: 'numeric'
-                        });
-                        return (
-                          <div 
-                            key={d.date} 
-                            title={`${formattedDate}: ${d.count} ${d.count === 1 ? 'action' : 'actions'}`} 
-                            className={`h-3 w-3 rounded-sm ${colorFor(d.count)} hover:scale-125 hover:ring-2 hover:ring-eco-primary transition-all cursor-pointer`} 
-                          />
-                        );
-                      })}
+                        })}
+                      </span>
                     </div>
-                  )) : (
-                    <ActivityHeatmapSkeleton />
                   )}
                 </div>
                 
-                <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
-                  <span>Less</span>
-                  <div className="flex space-x-1 items-center">
-                    <div className="h-3 w-3 rounded-sm bg-gray-100 border border-gray-200" title="0 actions" />
-                    <div className="h-3 w-3 rounded-sm bg-emerald-200" title="1-2 actions" />
-                    <div className="h-3 w-3 rounded-sm bg-emerald-300" title="3-4 actions" />
-                    <div className="h-3 w-3 rounded-sm bg-emerald-400" title="5-6 actions" />
-                    <div className="h-3 w-3 rounded-sm bg-emerald-500" title="7+ actions" />
+                {/* Stats Row */}
+                <div className="grid grid-cols-3 gap-4 w-full pt-4 border-t border-border">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-eco-primary">{user.points}</div>
+                    <div className="text-xs text-muted-foreground">Points</div>
                   </div>
-                  <span>More</span>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-eco-secondary">{totalActivity}</div>
+                    <div className="text-xs text-muted-foreground">Actions</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-eco-sky">{streak}</div>
+                    <div className="text-xs text-muted-foreground">Active Days</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Activity Heatmap */}
+          <Card className="md:flex-1">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-5 h-5 text-eco-primary" />
+                  <h3 className="font-semibold text-foreground">Activity Heatmap</h3>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">Last 12 weeks (84 days)</div>
+                  <div className="flex gap-1 overflow-x-auto p-2 bg-muted/20 rounded-lg">
+                    {weeks.length > 0 ? weeks.map((w, i) => (
+                      <div key={i} className="flex flex-col gap-1">
+                        {w.map((d) => {
+                          const dateObj = new Date(d.date);
+                          const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric',
+                            year: 'numeric'
+                          });
+                          return (
+                            <div 
+                              key={d.date} 
+                              title={`${formattedDate}: ${d.count} ${d.count === 1 ? 'action' : 'actions'}`} 
+                              className={`h-3 w-3 rounded-sm ${colorFor(d.count)} hover:scale-125 hover:ring-2 hover:ring-eco-primary transition-all cursor-pointer`} 
+                            />
+                          );
+                        })}
+                      </div>
+                    )) : (
+                      <ActivityHeatmapSkeleton />
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
+                    <span>Less</span>
+                    <div className="flex space-x-1 items-center">
+                      <div className="h-3 w-3 rounded-sm bg-gray-100 border border-gray-200" title="0 actions" />
+                      <div className="h-3 w-3 rounded-sm bg-emerald-200" title="1-2 actions" />
+                      <div className="h-3 w-3 rounded-sm bg-emerald-300" title="3-4 actions" />
+                      <div className="h-3 w-3 rounded-sm bg-emerald-400" title="5-6 actions" />
+                      <div className="h-3 w-3 rounded-sm bg-emerald-500" title="7+ actions" />
+                    </div>
+                    <span>More</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Delete Profile Button */}
-        <Button 
-          variant="destructive" 
-          className="w-full flex items-center space-x-2"
-          onClick={() => setShowDeleteDialog(true)}
-        >
-          <Trash2 className="w-4 h-4" />
-          <span>Delete Profile</span>
-        </Button>
-
+                  <Button 
+                    variant="destructive" 
+                    className="flex items-center space-x-2 mr-auto"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete Profile</span>
+                  </Button>
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
