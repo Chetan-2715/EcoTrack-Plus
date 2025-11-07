@@ -146,7 +146,7 @@ export default function Home() {
         
         <div className="container mx-auto px-4 text-center relative z-10 pt-16">
           <h1 className="text-6xl md:text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-eco-primary to-eco-secondary fade-in-up">
-            EcoTrack+
+            ECOTRACK+
           </h1>
           <div className="max-w-4xl mx-auto">
             <div className="flex flex-row items-center justify-center gap-6 mt-8">
