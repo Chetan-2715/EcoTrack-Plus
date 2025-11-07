@@ -32,6 +32,7 @@ import { useOnScreen } from '@/hooks/use-on-screen';
 import { useWebGLSupport } from '@/hooks/use-webgl-support';
 import ErrorBoundary from '@/components/error-boundary';
 import { HoverOrb } from "@/components/hover-orb";
+import TextPressure from '@/components/text-pressure';
 
 // Interactive Globe mesh
 function GlobeMesh() {
@@ -145,9 +146,7 @@ export default function Home() {
         <div className="absolute inset-0 opacity-5 eco-bg-pattern"></div>
         
         <div className="container mx-auto px-4 text-center relative z-10 pt-16">
-          <h1 className="text-6xl md:text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-eco-primary to-eco-secondary fade-in-up">
-            ECOTRACK+
-          </h1>
+          <TextPressure text="ECOTRACK+" />
           <div className="max-w-4xl mx-auto">
             <div className="flex flex-row items-center justify-center gap-6 mt-8">
               <div className="flex flex-col justify-center title-container">
