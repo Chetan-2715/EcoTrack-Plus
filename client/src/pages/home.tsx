@@ -315,8 +315,8 @@ export default function Home() {
             <div>
               <h4 className="text-lg font-semibold mb-4">Features</h4>
               <ul className="space-y-2 text-eco-mint">
-                <li><Link href="/dashboard"><a className="hover:text-white transition-colors duration-200">Habit Tracking</a></Link></li>
-                <li><Link href="/rewards"><a className="hover:text-white transition-colors duration-200">Eco Rewards</a></Link></li>
+                <li><Link href="/dashboard" className="hover:text-white transition-colors duration-200">Habit Tracking</Link></li>
+                <li><Link href="/rewards" className="hover:text-white transition-colors duration-200">Eco Rewards</Link></li>
                 <li><a href="#" className="hover:text-white transition-colors duration-200">Community</a></li>
               </ul>
             </div>

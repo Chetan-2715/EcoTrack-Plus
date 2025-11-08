@@ -8,9 +8,10 @@ import { HabitForm } from "@/components/habit-forms";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { GrassBackground } from "@/components/grass-background";
 import { Button } from "@/components/ui/button";
+import { Chatbot } from "@/components/chatbot";
 
 export default function Dashboard() {
   const { user, login, loading } = useAuth();
@@ -331,6 +332,9 @@ export default function Dashboard() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Action Details</DialogTitle>
+              <DialogDescription>
+                Here are the details of your recorded eco-friendly action.
+              </DialogDescription>
             </DialogHeader>
             
             {selectedAction && (
@@ -420,6 +424,7 @@ export default function Dashboard() {
           />
         )}
       </main>
+      <Chatbot />
     </>
   );
 }
