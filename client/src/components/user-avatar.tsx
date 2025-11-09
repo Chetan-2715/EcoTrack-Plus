@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Camera } from "lucide-react";
 import { resizeImageForAvatar } from "@/lib/image-compression";
@@ -124,6 +124,9 @@ export function UserAvatar({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Update Profile Photo</DialogTitle>
+            <DialogDescription>
+              Upload a new photo for your profile. A square image works best.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Upload, MapPin, Recycle, Droplets, Trees, Calculator, Navigation } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -358,6 +358,9 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
             <span>{getTitle()}</span>
             <span className="text-sm text-eco-primary">({getPoints()} points)</span>
           </DialogTitle>
+          <DialogDescription>
+            Log your eco-friendly action to earn points and track your impact.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-2">
