@@ -23,8 +23,8 @@ const baseHabitSchema = z.object({
 });
 
 const transportSchema = baseHabitSchema.extend({
-  startLocation: z.string().min(1, "Start location is required"),
-  endLocation: z.string().min(1, "End location is required"),
+  startLocation: z.string().min(1, "Starting location is required"),
+  endLocation: z.string().min(1, "Destination is required"),
 });
 
 const recycleSchema = baseHabitSchema.extend({
@@ -187,35 +187,135 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
     }
   };
   
-  const calculateDistanceFromCoords = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    // Haversine formula to calculate distance between two points
-    const R = 6371; // Radius of the Earth in kilometers
+  const calculateDistance = async (startLocation: string, endLocation: string) => {
+    try {
+      // First, geocode the addresses to get coordinates using OpenRouteService Geocoding
+      const geocodeUrl = 'https://api.openrouteservice.org/geocode/search';
+      
+      // Access environment variable in a way that works with Vite
+      const apiKey = import.meta.env.VITE_ORS_API_KEY;
+      
+      if (!apiKey) {
+        console.error('OpenRouteService API key is not configured. Please add VITE_ORS_API_KEY to your .env file');
+        throw new Error('OpenRouteService API key is not configured. Please check your configuration.');
+      }
+      
+      // Geocode start location
+      const startResponse = await fetch(
+        `${geocodeUrl}?api_key=${apiKey}&text=${encodeURIComponent(startLocation)}`
+      );
+      
+      // Geocode end location
+      const endResponse = await fetch(
+        `${geocodeUrl}?api_key=${apiKey}&text=${encodeURIComponent(endLocation)}`
+      );
+      
+      const startData = await startResponse.json();
+      const endData = await endResponse.json();
+      
+      if (!startData.features?.length || !endData.features?.length) {
+        throw new Error('Could not find coordinates for one or both locations');
+      }
+      
+      const startCoords = startData.features[0].geometry.coordinates; // [lng, lat]
+      const endCoords = endData.features[0].geometry.coordinates;     // [lng, lat]
+      
+      // Calculate route using OpenRouteService Directions API
+      const directionsUrl = 'https://api.openrouteservice.org/v2/directions/driving-car';
+      const directionsResponse = await fetch(directionsUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          coordinates: [startCoords, endCoords],
+          instructions: false,
+          preference: 'recommended',
+          units: 'km'
+        })
+      });
+      
+      const routeData = await directionsResponse.json();
+      
+      if (routeData.routes?.length) {
+        // Return distance in kilometers (ORS returns km by default when units=km)
+        return routeData.routes[0].summary.distance;
+      } else {
+        throw new Error('Could not calculate route');
+      }
+    } catch (error) {
+      console.error('Error calculating distance:', error);
+      throw new Error('Failed to calculate distance. Please check the addresses and try again.');
+    }
+  };
+  
+  // Helper function to calculate distance between two points using Haversine formula
+  const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Earth's radius in km
     const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLng = (lng2 - lng1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a = 
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in kilometers
+    return R * c; // Distance in km
   };
-  
-  const handleDistanceCalculation = () => {
-    // Ensure startLocation and endLocation are strings, defaulting to empty if undefined
-    const startLocation = form.getValues('startLocation') || '';
-    const endLocation = form.getValues('endLocation') || '';
+
+  const handleCalculateDistance = async () => {
+    // Get values with proper type assertion
+    const startLocation = form.getValues('startLocation') as string;
+    const endLocation = form.getValues('endLocation') as string;
     
-    // Check if locations are coordinates (lat, lng format)
-    const coordRegex = /^-?\d+\.\d+,\s*-?\d+\.\d+$/;
-    if (coordRegex.test(startLocation) && coordRegex.test(endLocation)) {
-      const [startLat, startLng] = startLocation.split(',').map(coord => parseFloat(coord.trim()));
-      const [endLat, endLng] = endLocation.split(',').map(coord => parseFloat(coord.trim()));
-      const distance = calculateDistanceFromCoords(startLat, startLng, endLat, endLng);
-      setCalculatedDistance(Math.round(distance * 10) / 10); // Round to 1 decimal place
-    } else {
-      // Fallback to the existing method for text-based locations
-      const distance = calculateDistance(startLocation, endLocation);
-      setCalculatedDistance(distance);
+    if (!startLocation || !endLocation) {
+      form.setError('startLocation', { type: 'manual', message: 'Both locations are required' });
+      return;
+    }
+    
+    try {
+      setIsGettingLocation(true);
+      
+      // Check if we have the OpenRouteService API key
+      if (!import.meta.env.VITE_ORS_API_KEY) {
+        throw new Error('OpenRouteService API key is not configured. Please add VITE_ORS_API_KEY to your .env file');
+      }
+
+      try {
+        // First try with OpenRouteService
+        const distance = await calculateDistance(startLocation, endLocation);
+        setCalculatedDistance(parseFloat(distance.toFixed(2)));
+      } catch (apiError) {
+        console.error('OpenRouteService error:', apiError);
+        
+        // Fallback to Haversine formula only if the inputs are coordinates
+        const coordRegex = /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/;
+        const isStartCoord = coordRegex.test(startLocation);
+        const isEndCoord = coordRegex.test(endLocation);
+        
+        if (isStartCoord && isEndCoord) {
+          const parseCoordinate = (coord: string): [number, number] => {
+            const [lat, lng] = coord.split(',').map(Number);
+            return [lat, lng];
+          };
+          
+          const [startLat, startLng] = parseCoordinate(startLocation);
+          const [endLat, endLng] = parseCoordinate(endLocation);
+          
+          const distance = haversineDistance(startLat, startLng, endLat, endLng);
+          setCalculatedDistance(parseFloat(distance.toFixed(2)));
+        } else {
+          throw new Error('Failed to calculate distance. Please check your API key and ensure the addresses are valid.');
+        }
+      }
+    } catch (error) {
+      console.error('Error calculating distance:', error);
+      form.setError('startLocation', { 
+        type: 'manual', 
+        message: error instanceof Error ? error.message : 'Failed to calculate distance' 
+      });
+    } finally {
+      setIsGettingLocation(false);
     }
   };
 
@@ -267,61 +367,52 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
           }} className="space-y-4 pb-4">
           {/* Transport specific fields */}
           {habitType === "transport" && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="startLocation">Start Location</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="startLocation"
-                    placeholder="Enter starting point or use GPS"
-                    {...form.register("startLocation")}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={getCurrentLocation}
-                    disabled={isGettingLocation}
-                    className="flex items-center space-x-2 min-w-fit"
-                  >
-                    <Navigation className="w-4 h-4" />
-                    <span>{isGettingLocation ? 'Getting...' : 'GPS'}</span>
-                  </Button>
-                </div>
-                {form.formState.errors.startLocation && (
-                  <p className="text-sm text-red-500">{form.formState.errors.startLocation.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endLocation">Destination</Label>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="startLocation">Starting Point</Label>
                 <Input
-                  id="endLocation"
-                  placeholder="Enter your destination"
-                  {...form.register("endLocation")}
+                  id="startLocation"
+                  placeholder="e.g., 123 Main St, New York, NY"
+                  {...form.register('startLocation')}
+                  className="mt-1"
                 />
-                {form.formState.errors.endLocation && (
-                  <p className="text-sm text-red-500">{form.formState.errors.endLocation.message}</p>
+                {form.formState.errors?.startLocation && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {form.formState.errors.startLocation.message as string}
+                  </p>
                 )}
               </div>
               
-              {/* Distance Calculation */}
-              <div className="space-y-3">
-                <Button
-                  type="button"
+              <div>
+                <Label htmlFor="endLocation">Destination</Label>
+                <Input
+                  id="endLocation"
+                  placeholder="e.g., 456 Oak Ave, Boston, MA"
+                  {...form.register('endLocation')}
+                  className="mt-1"
+                />
+                {form.formState.errors?.endLocation && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {form.formState.errors.endLocation.message as string}
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex justify-between items-center pt-2">
+                <Button 
+                  type="button" 
+                  onClick={handleCalculateDistance}
+                  disabled={isGettingLocation}
                   variant="outline"
-                  onClick={handleDistanceCalculation}
-                  className="w-full flex items-center space-x-2"
-                  disabled={!form.watch('startLocation') || !form.watch('endLocation')}
+                  className="flex items-center gap-2"
                 >
-                  <Calculator className="w-4 h-4" />
-                  <span>Calculate Distance</span>
+                  <Calculator className="h-4 w-4" />
+                  {isGettingLocation ? 'Calculating...' : 'Calculate Distance'}
                 </Button>
                 
-                {calculatedDistance && (
-                  <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium text-green-800 dark:text-green-200">Estimated Distance:</span>
-                      <span className="font-bold text-green-600 dark:text-green-400">{calculatedDistance} km</span>
-                    </div>
+                {calculatedDistance !== null && (
+                  <div className="text-sm bg-muted px-3 py-1.5 rounded-md">
+                    Distance: <span className="font-medium text-foreground">{calculatedDistance} km</span>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-green-700 dark:text-green-300">{getDistanceCategory(calculatedDistance)}</span>
                       <span className="text-sm font-medium text-green-600 dark:text-green-400">{calculateTransportPoints(calculatedDistance)} points</span>
@@ -338,9 +429,9 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
                   <li>• 11-20 km: 3 points</li>
                   <li>• 20+ km: 4 points</li>
                 </ul>
-                <p className="text-xs mt-2 text-muted-foreground">💡 Use GPS for your start location, then enter destination coordinates or address for accurate distance calculation!</p>
+                <p className="text-xs mt-2 text-muted-foreground">💡 Enter start and destination addresses for accurate distance calculation!</p>
               </div>
-            </>
+            </div>
           )}
 
           {/* Recycling specific fields */}
@@ -513,7 +604,7 @@ export function HabitForm({ habitType, isOpen, onClose, onSubmit, isLoading }: H
               : "Points are awarded immediately upon successful upload."}
           </div>
 
-            <div className="flex justify-end space-x-2 pt-4 sticky bottom-0 bg-background border-t border-border mt-4 pt-4 -mx-6 px-6">
+            <div className="flex justify-end space-x-2 sticky bottom-0 bg-background border-t border-border mt-4 -mx-6 px-6 pt-4">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>

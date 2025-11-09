@@ -17,23 +17,50 @@ const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
 export const sendMessageToGemini = async (message: string) => {
+  // Check for greeting
+  if (message.toLowerCase().includes('hi') || message.toLowerCase().includes('hello') || message.toLowerCase().includes('hey')) {
+    return "Welcome! I will help you get answers for queries related to the actions in the home page.";
+  }
+
+  // Check for public transport query
+  const transportRegex = /(?:travel|traveled|travelled|traveling|travelling|commute|commuting|public transport|bus|train|metro|subway|transit)/i;
+  const distanceMatch = message.match(/(\d+)\s*(km|kilometer|kilometre)/i);
+  
+  if (transportRegex.test(message) && distanceMatch) {
+    const distance = parseFloat(distanceMatch[1]);
+    if (!isNaN(distance)) {
+      // Calculate carbon emissions
+      const carEmission = distance * 0.192; // kg CO2 per km for average car
+      const publicTransportEmission = distance * 0.105; // kg CO2 per km for public transport
+      const savedEmission = carEmission - publicTransportEmission;
+      
+      return `By traveling ${distance}km using public transport instead of a personal vehicle, you saved approximately ${savedEmission.toFixed(2)} kg of CO2 emissions!`;
+    }
+  }
+
+  // Check if the message is related to app's features
+  const appRelatedKeywords = ['recycle', 'public transport', 'water', 'tree', 'carbon', 'emission', 'save', 'saving', 'eco', 'environment'];
+  const isAppRelated = appRelatedKeywords.some(keyword => 
+    message.toLowerCase().includes(keyword)
+  );
+
+  if (!isAppRelated) {
+    return "I can only answer queries related to the actions shown in the home page and the carbon amount you saved using these actions.";
+  }
+
+  // If it's related to app features but not handled above, use Gemini
   const prompt = `
     You are EcoTrack+ AI, a helpful assistant for the EcoTrack+ application, powered by Gemini.
-    Your purpose is to answer user questions about their eco-friendly actions and carbon savings based on the features available in the app.
-    The app tracks the following actions:
+    Your purpose is to answer user questions about their eco-friendly actions and carbon savings.
+    
+    The app tracks these actions:
     - Recycling items
     - Using public transport
     - Saving water
     - Planting trees
 
-    When a user asks about carbon savings from public transport, use this formula:
-    Carbon Saved (in kg) = Distance (in km) * 0.12
-    For example, if a user travels 25km, the carbon saved is 25 * 0.12 = 3 kg.
-
-    Here are your rules:
-    1.  If the user's question is related to the app's actions or calculating carbon savings as described, provide a direct and helpful answer.
-    2.  If the user asks a question NOT related to the app's features (e.g., "what is the capital of France?", "write me a poem", etc.), you MUST politely decline and state your purpose. Your response should be: "I can only answer queries related to the actions shown in the home page and the carbon amount you saved using these actions."
-    3.  Keep your answers concise and to the point.
+    Keep your responses concise and focused on environmental impact and carbon savings.
+    If the question is not directly about these topics, say: "I can only help with questions about eco-friendly actions and carbon savings."
 
     User's question: "${message}"
   `;
