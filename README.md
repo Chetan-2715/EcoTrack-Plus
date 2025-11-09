@@ -32,6 +32,13 @@ Track Your Habits Save the Planet <br><br>
   - Specify distances and locations for transport
   - Track recycled item types
 
+### 🤖 **AI-Powered Eco Assistant**
+- **Gemini-Powered Chatbot:** Get personalized eco-tips and sustainability advice
+- **Habit Recommendations:** AI suggests new eco-friendly habits based on your activity
+- **Environmental Impact Insights:** Learn about your carbon footprint reduction
+- **Interactive Q&A:** Ask questions about sustainability and get AI-generated responses
+- **Smart Reminders:** Get proactive suggestions for improving your eco-habits
+
 ### 📜 **Action History**
 - **Complete History View:** Scrollable list of all eco-actions taken
 - **Detailed Action Modal:** Click any action to view:
@@ -77,6 +84,7 @@ Track Your Habits Save the Planet <br><br>
 
 ### **Frontend**
 - **React 18** with TypeScript
+- **@google/generative-ai** - Google's Generative AI client for Gemini integration
 - **Vite** - Lightning-fast build tool
 - **TailwindCSS** - Utility-first styling
 - **shadcn/ui** - Beautiful, accessible components
@@ -95,6 +103,9 @@ Track Your Habits Save the Planet <br><br>
 - **Drizzle ORM** - Type-safe database schema
 - **dotenv** - Environment variable management
 
+### **AI & Machine Learning**
+- **Google Gemini API** - For AI-powered chat and recommendations
+
 ### **Development Tools**
 - **TSX** - TypeScript execution
 - **Vite HMR** - Hot module replacement
@@ -110,6 +121,9 @@ EcoTrack-Plus/
 ├── client/                   # React frontend application
 │   ├── src/
 │   │   ├── components/       # Reusable UI components
+│   │   │   ├── chat/        # AI Chat components
+│   │   │   │   ├── ChatWindow.tsx
+│   │   │   │   └── Message.tsx
 │   │   │   ├── ui/          # shadcn/ui components
 │   │   │   ├── habit-card.tsx
 │   │   │   ├── habit-forms.tsx
