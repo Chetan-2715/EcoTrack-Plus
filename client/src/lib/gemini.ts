@@ -14,7 +14,7 @@ try {
   if (apiKey) {
     const genAI = new GoogleGenerativeAI(apiKey);
     model = genAI.getGenerativeModel({ 
-      model: "gemini-pro-latest",
+      model: "gemini-2.5-flash",
       generationConfig: {
         temperature: 0.7,
         topP: 0.9,
@@ -90,8 +90,13 @@ export const sendMessageToGemini = async (message: string) => {
             }
           })();
 
-    if (message.includes('quota')) {
-      return "I've reached my usage limit. Please try again later or check your API quota.";
+    // Enhanced API limit detection
+    if (message.toLowerCase().includes('quota') || 
+        message.toLowerCase().includes('rate limit') ||
+        message.toLowerCase().includes('429') ||  // HTTP 429 Too Many Requests
+        message.toLowerCase().includes('limit exceeded') ||
+        message.toLowerCase().includes('resource exhausted')) {
+      return "API limit exhausted. Please try again later.";
     } else if (message.includes('network')) {
       return "I'm having trouble connecting to the AI service. Please check your internet connection.";
     }
