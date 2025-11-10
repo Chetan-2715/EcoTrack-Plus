@@ -111,13 +111,22 @@ export default function Rewards() {
 
             
             {rewards.map((reward: any, index: number) => {
+              // Define rewards based on user's points progress
               if (index === 0) {
                 reward = {
-                  id: "new-badge",
+                  id: "eco-warrior",
                   name: "Eco-Warrior",
-                  description: "You have shown great commitment to the cause!",
-                  pointsRequired: 100,
+                  description: "Your first milestone in protecting our planet!",
+                  pointsRequired: 50,
                   icon: <Shield />,
+                };
+              } else if (index === 1 && user.points >= 50) {
+                reward = {
+                  id: "eco-superstar",
+                  name: "Eco Superstar",
+                  description: "You're making an incredible impact on environmental conservation!",
+                  pointsRequired: 300,
+                  icon: <Shield className="text-yellow-400" />,
                 };
               }
               const rewardStatus = getRewardStatus(reward);
