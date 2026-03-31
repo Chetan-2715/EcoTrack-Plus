@@ -5,19 +5,14 @@ import { Sprout } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../lib/auth";
-import { useLocation } from "wouter";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-
-// Email/password via Supabase + OAuth for Google/Microsoft
-import { supabase } from "@/lib/supabase";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,12 +21,9 @@ export default function Login() {
     try {
       if (!email || !password) throw new Error("Enter email and password");
       
-      // Use direct backend login
       const response = await fetch("/api/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
       
@@ -41,10 +33,9 @@ export default function Login() {
         throw new Error(data.message || "Invalid credentials");
       }
       
-      // Login successful - update auth context and redirect
+      // login() sets user state → AuthPage/HomeOrDashboard will auto-redirect to /dashboard
       login(data.user);
       toast({ title: "Login successful!", description: "Welcome back to EcoTrack+" });
-      setLocation("/dashboard");
       
     } catch (error: any) {
       toast({ title: "Login failed", description: error.message || "Invalid credentials", variant: "destructive" });
@@ -53,22 +44,8 @@ export default function Login() {
     }
   };
 
-  const signInWithProvider = async (provider: "google" | "azure"): Promise<void> => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: provider === "azure" ? "azure" : "google",
-        options: { redirectTo: window.location.origin },
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      toast({ title: "OAuth sign-in failed", description: err.message, variant: "destructive" });
-    }
-  };
-
   return (
-
       <Card className="w-full max-w-md shadow-2xl border border-border">
-
         <CardHeader className="text-center">
           <div className="w-16 h-16 eco-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
             <Sprout className="text-white text-2xl" />
@@ -113,12 +90,6 @@ export default function Login() {
             >
               {isLoading ? "Signing In..." : "Sign In"}
             </Button>
-            <div className="mt-4 grid grid-cols-1 gap-3">
-              <Button type="button" variant="outline" className="w-full py-3 rounded-xl" onClick={() => signInWithProvider("google")}>
-                Continue with Google
-              </Button>
-
-            </div>
           </form>
           <div className="mt-6 text-center w-full">
             <p className="text-muted-foreground">
@@ -130,6 +101,5 @@ export default function Login() {
           </div>
         </CardContent>
       </Card>
-
   );
 }

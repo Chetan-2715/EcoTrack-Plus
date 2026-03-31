@@ -4,15 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../lib/auth";
-import { useLocation } from "wouter";
 import { Link } from "wouter";
 import { Sprout } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { supabase } from "@/lib/supabase";
-import { Button as UIButton } from "@/components/ui/button";
-
-
 
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -20,7 +15,6 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +22,6 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      // Use direct backend registration without email verification
       const response = await apiRequest("POST", "/api/auth/register", {
         username,
         email,
@@ -41,13 +34,12 @@ export default function Register() {
         throw new Error(data.message || "Registration failed");
       }
       
-      // User registered successfully - auto login
+      // login() sets user state → AuthPage will auto-redirect to /dashboard
       login(data.user);
       toast({ 
         title: "Registration successful!", 
         description: "Welcome to EcoTrack+! You're now logged in." 
       });
-      setLocation("/dashboard");
       
     } catch (error: any) {
       toast({
@@ -60,22 +52,8 @@ export default function Register() {
     }
   };
 
-  const signInWithProvider = async (provider: "google" | "azure") => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: provider === "azure" ? "azure" : "google",
-        options: { redirectTo: window.location.origin },
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      toast({ title: "OAuth sign-in failed", description: err.message, variant: "destructive" });
-    }
-  };
-
   return (
-
       <Card className="w-full max-w-md shadow-2xl border border-border">
-
         <CardHeader className="text-center">
           <div className="w-16 h-16 eco-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
             <Sprout className="text-white text-2xl" />
@@ -135,13 +113,6 @@ export default function Register() {
               {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
-
-          <div className="mt-4 grid grid-cols-1 gap-3">
-            <UIButton type="button" variant="outline" onClick={() => signInWithProvider("google")}>
-              Continue with Google
-            </UIButton>
-
-          </div>
           
           <div className="mt-6 text-center">
             <p className="text-muted-foreground">
@@ -153,6 +124,5 @@ export default function Register() {
           </div>
         </CardContent>
       </Card>
-
   );
 }

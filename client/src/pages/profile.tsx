@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { UserAvatar } from "@/components/user-avatar";
 import { Edit3, LogOut, Calendar, Trophy, Zap, Trash2 } from "lucide-react";
@@ -80,9 +79,8 @@ export default function Profile() {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    logout(); // Use the logout function from context
+  const handleLogout = () => {
+    logout();
     setLocation("/login");
   };
 
@@ -126,8 +124,7 @@ export default function Profile() {
       const res = await apiRequest("DELETE", `/api/users/${user.id}`, { password: deletePassword });
       if (res.ok) {
         toast({ title: "Profile deleted successfully." });
-        await supabase.auth.signOut();
-        logout(); // Use the logout function from context
+        logout();
         setLocation("/login");
       } else {
         const errorData = await res.json();

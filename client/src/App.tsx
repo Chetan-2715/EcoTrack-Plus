@@ -10,10 +10,9 @@ import Home from "./pages/home";
 import Dashboard from "./pages/dashboard";
 import Rewards from "./pages/rewards";
 import Leaderboard from "./pages/leaderboard";
-import Login from "./pages/login";
-import Register from "./pages/register";
 import Profile from "./pages/profile";
-import NotFound from "./pages/not-found"; 
+import NotFound from "./pages/not-found";
+import AuthPage from "./pages/auth"; 
 function HomeOrDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -26,8 +25,6 @@ function HomeOrDashboard() {
 
   return user ? null : <Home />;
 }
-
-import AuthPage from "./pages/auth";
 
 function Router() {
   return (

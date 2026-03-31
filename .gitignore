@@ -1,4 +1,4 @@
-# Node modules
+# Dependencies
 node_modules/
 **/node_modules/
 
@@ -6,40 +6,55 @@ node_modules/
 dist/
 build/
 out/
-*.log
 
-# Environment files
+# Environment files (contain secrets)
 .env
 .env.local
 .env.*.local
+client/.env
+
+# Logs
+*.log
+npm-debug.log*
 
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # IDE files
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
 
-# System files
+# System / temp files
 *.tmp
 *.temp
 
-# Replit/warp/dev/other tool files
+# Replit / dev tool artifacts
 replit.*
 WARP.md
 *.code-workspace
 
-# Dependency lock files (optional, if you don't want to track them)
+# Test coverage
+coverage/
+
+# Package archives
+*.tgz
+
+# Local databases
+*.sqlite
+*.db
+
+# Agent / skill configs (AI tooling, not app code)
+.agent/
+.agents/
+.local/
+skills-lock.json
+
+# Lock files (optional — uncomment to track)
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
-
-# Misc
-coverage/
-*.tgz
-
-# Ignore local database or storage
-*.sqlite
-*.db

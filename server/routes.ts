@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./supabase-storage";
+import { storage } from "./neon-storage";
 import { insertUserSchema, loginSchema, habitUpdateSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 
@@ -31,7 +31,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error.message === "User already exists with this email") {
         return res.status(400).json({ message: error.message });
       }
-      res.status(500).json({ message: "Failed to create user" });
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Failed to create user", detail: error.message });
     }
   });
 
