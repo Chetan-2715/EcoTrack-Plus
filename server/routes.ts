@@ -36,21 +36,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upsert app user profile after Supabase signup/login
-  app.post("/api/auth/upsert", async (req, res) => {
-    try {
-      const { id, email, username } = req.body as { id: string; email: string; username?: string };
-      const existing = await storage.getUserByEmail(email.toLowerCase());
-      if (existing) {
-        return res.json({ user: { id: existing.id, username: existing.username, email: existing.email, points: existing.points } });
-      }
-      const created = await storage.createUser({ username: username || email.split("@")[0], email: email.toLowerCase(), password: "" } as any);
-      res.json({ user: { id: created.id, username: created.username, email: created.email, points: created.points } });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to upsert user" });
-    }
-  });
-
   app.post("/api/auth/login", async (req, res) => {
     try {
       const data = loginSchema.parse(req.body);
